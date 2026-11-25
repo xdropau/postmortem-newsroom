@@ -37,7 +37,7 @@
     {"id": "eu-presscorner", "org": "European Commission", "bot": "primary", "tier": "primary", "url": "https://ec.europa.eu/commission/presscorner/api/rss?language=en", "verify": true},
     {"id": "afp-au", "org": "Australian Federal Police", "bot": "primary", "tier": "primary", "url": "https://www.afp.gov.au/news-centre/media-release/rss.xml", "verify": true, "enabled": false, "disabled_reason": "afp.gov.au/feed/media-releases only redirects to an HTML page; no RSS found."},
     {"id": "asic-media", "org": "ASIC", "bot": "primary", "tier": "primary", "url": "https://asic.gov.au/newsroom/rss/", "verify": true, "enabled": false, "disabled_reason": "No official ASIC RSS feed found (email alerts only)."},
-    {"id": "accc-media", "org": "ACCC", "bot": "primary", "tier": "primary", "url": "https://www.accc.gov.au/rss/media_releases.xml"},
+    {"id": "accc-media", "org": "ACCC", "bot": "primary", "tier": "primary", "url": "https://www.accc.gov.au/rss/media_releases.xml", "enabled": false, "disabled_reason": "accc.gov.au returns HTTP 403 to GitHub Actions runner IPs (works from a home IP); not circumvented."},
     {"id": "aph-news", "org": "Australian Parliament", "bot": "primary", "tier": "primary", "url": "https://www.aph.gov.au/house/rss/media_releases"},
     {"id": "icc-news", "org": "International Criminal Court", "bot": "primary", "tier": "primary", "url": "https://www.icc-cpi.int/rss/news/all"},
     {"id": "icj-press", "org": "International Court of Justice", "bot": "primary", "tier": "primary", "url": "https://www.icj-cij.org/rss/press-releases", "verify": true, "enabled": false, "disabled_reason": "No RSS feed link found on icj-cij.org."},

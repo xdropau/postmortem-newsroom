@@ -167,9 +167,11 @@ def acceptance(conn, cfg, now) -> tuple[bool, list[tuple[str, bool, str]]]:
     pk_ok = any(os.path.exists(os.path.join(os.environ.get("DATA_DIR", "data"), p, "05_part_e_report.md")) for p in pk)
     out.append(("Sample editorial package generated", pk_ok, f"{len(pk)} packages"))
     h = q("SELECT COUNT(*) c FROM runs WHERE bot='health' AND status='ok'")[0]["c"]
-    out.append(("Bot health monitoring working (health runs + ops alert test)", h >= 1 and kv_get(conn, "ops_alert_test") == "sent", f"{h} health runs, ops test={kv_get(conn, 'ops_alert_test', 'not run')}"))
+    ops_ok = bool(q("SELECT 1 FROM notifications WHERE key LIKE 'opstest:%' AND ok=1"))
+    brief_ok = bool(q("SELECT 1 FROM notifications WHERE key LIKE 'briefingtest:%' AND ok=1"))
+    out.append(("Bot health monitoring working (health runs + ops alert test)", h >= 1 and ops_ok, f"{h} health runs, ops test alert accepted by Telegram={ops_ok}"))
     wf = os.path.join(ROOT, ".github", "workflows", "briefing.yml")
-    out.append(("Overnight briefing scheduled (07:00 Sydney) and preview delivered", os.path.exists(wf) and kv_get(conn, "briefing_test") == "sent", f"workflow={os.path.exists(wf)}, preview={kv_get(conn, 'briefing_test', 'not run')}"))
+    out.append(("Overnight briefing scheduled (07:00 Sydney) and preview delivered", os.path.exists(wf) and brief_ok, f"workflow={os.path.exists(wf)}, preview accepted by Telegram={brief_ok}"))
     off = kv_get(conn, "owner_confirmed_offline")
     out.append(("Cloud execution independently demonstrated (you sent /confirm_offline with your computer off)", bool(off) and len(sched) >= 3, f"confirmed={off or 'no'}"))
     out.append(("Editorial controls tested (version-bound approval, edit voids approval, unapproved cannot publish, corrections, leads, live approval)",
