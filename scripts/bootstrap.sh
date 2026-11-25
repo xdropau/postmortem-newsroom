@@ -43,30 +43,59 @@ if ! gh secret list -R "$CODE_REPO" | grep -q '^DATA_DEPLOY_KEY'; then
   rm -rf "$KD"
 fi
 gh variable set DATA_REPO -R "$CODE_REPO" --body "$DATA_REPO"
-read -rp "Public contact email for the feed user-agent [depostmortemchannel@gmail.com]: " CE
+TOKEN_FILE="${TOKEN_FILE:-$(cd ../.. && pwd)/token.txt}"   # C:\Users\hello\PostMortem\token.txt
+if [ -f "$TOKEN_FILE" ]; then CE=""; else read -rp "Public contact email for the feed user-agent [depostmortemchannel@gmail.com]: " CE; fi
 gh variable set CONTACT_EMAIL -R "$CODE_REPO" --body "${CE:-depostmortemchannel@gmail.com}"
 
 echo "== 4/7 Telegram =="
-read -rsp "Telegram bot token from @BotFather (hidden): " TG; echo
-curl -fsS "https://api.telegram.org/bot${TG}/getMe" >/dev/null || { echo "Telegram rejected that token."; exit 1; }
-read -rp "In Telegram, open your bot and send /start, then press Enter here: " _
-CHAT=$(curl -fsS "https://api.telegram.org/bot${TG}/getUpdates" | "$PY" -c 'import sys,json
-r=json.load(sys.stdin).get("result",[])
-ids=[(u.get("message") or {}).get("chat",{}).get("id") for u in r]
-ids=[i for i in ids if i]
-print(ids[-1] if ids else "")')
-[ -n "$CHAT" ] || { echo "No message from you found. Send /start to the bot and rerun."; exit 1; }
-printf '%s' "$TG" | gh secret set TELEGRAM_BOT_TOKEN -R "$CODE_REPO"
-printf '%s' "$CHAT" | gh secret set TELEGRAM_CHAT_ID -R "$CODE_REPO"
-unset TG
+tg_secrets_set() { gh secret list -R "$CODE_REPO" | grep -q '^TELEGRAM_BOT_TOKEN' && gh secret list -R "$CODE_REPO" | grep -q '^TELEGRAM_CHAT_ID'; }
+if [ ! -f "$TOKEN_FILE" ] && tg_secrets_set; then
+  echo "Telegram secrets already stored; skipping."
+else
+  if [ -f "$TOKEN_FILE" ]; then
+    TG=$(tr -d '\r\n \t' < "$TOKEN_FILE")          # read from file; never echoed
+  else
+    read -rsp "Telegram bot token from @BotFather (hidden): " TG; echo
+  fi
+  # -o /dev/null keeps the token (which is in the URL) out of any output; --fail-with-body is not used on purpose
+  curl -sS -o /dev/null -w '' --fail "https://api.telegram.org/bot${TG}/getMe" 2>/dev/null \
+    || { echo "Telegram rejected the token (getMe failed). Check the token in $TOKEN_FILE."; exit 1; }
+  echo "Telegram token accepted (getMe ok)."
+  CHAT=""
+  for attempt in 1 2 3 4 5 6; do
+    CHAT=$(curl -sS --fail "https://api.telegram.org/bot${TG}/getUpdates" 2>/dev/null | "$PY" -c 'import sys,json
+try: r=json.load(sys.stdin).get("result",[])
+except Exception: r=[]
+ids=[]
+for u in r:
+    for k in ("message","edited_message","channel_post","my_chat_member"):
+        c=(u.get(k) or {}).get("chat") or {}
+        if c.get("type")=="private" and c.get("id"): ids.append(c["id"])
+print(ids[-1] if ids else "")') || CHAT=""
+    [ -n "$CHAT" ] && break
+    [ -f "$TOKEN_FILE" ] || read -rp "Send /start to your bot in Telegram, then press Enter: " _
+    sleep 5
+  done
+  [ -n "$CHAT" ] || { echo "Telegram has no recent private message to the bot. Send it any message (e.g. hello) and rerun this one command."; exit 1; }
+  echo "Found your Telegram chat."
+  printf '%s' "$TG" | gh secret set TELEGRAM_BOT_TOKEN -R "$CODE_REPO" >/dev/null || { echo "Could not store TELEGRAM_BOT_TOKEN secret"; exit 1; }
+  printf '%s' "$CHAT" | gh secret set TELEGRAM_CHAT_ID -R "$CODE_REPO" >/dev/null || { echo "Could not store TELEGRAM_CHAT_ID secret"; exit 1; }
+  gh secret list -R "$CODE_REPO" | grep -q '^TELEGRAM_BOT_TOKEN' || { echo "Secret not visible after set; keeping token file."; exit 1; }
+  unset TG CHAT
+  if [ -f "$TOKEN_FILE" ]; then
+    shred -u -n 3 "$TOKEN_FILE" 2>/dev/null || rm -f "$TOKEN_FILE"
+    [ ! -f "$TOKEN_FILE" ] && echo "Secrets stored; token file securely deleted."
+  fi
+fi
 
 echo "== 5/7 Dashboard password =="
 if ! gh secret list -R "$CODE_REPO" | grep -q '^DASHBOARD_PASSWORD'; then
   PW=$("$PY" -c 'import secrets;print(secrets.token_urlsafe(24))')
-  printf '%s' "$PW" | gh secret set DASHBOARD_PASSWORD -R "$CODE_REPO"
-  echo "DASHBOARD PASSWORD (save it in your password manager now; it is not shown again):"
-  echo "$PW"
-  read -rp "Press Enter once saved: " _
+  printf '%s' "$PW" | gh secret set DASHBOARD_PASSWORD -R "$CODE_REPO" >/dev/null
+  PWFILE="$(cd ../.. && pwd)/dashboard-password.txt"      # outside the repo, never committed
+  printf '%s\n' "$PW" > "$PWFILE"; chmod 600 "$PWFILE" 2>/dev/null || true
+  unset PW
+  echo "Dashboard password saved to: $PWFILE  (move it into your password manager, then delete the file)"
 fi
 
 run_wf () {  # run_wf <workflow-file> [input=value]
