@@ -26,7 +26,10 @@ def check(conn, cfg, now) -> list[dict]:
             issues.append({"kind": "radar_stale", "subject": "radar",
                            "text": f"Breaking News Radar has not succeeded for {human_age(age * 60)} (limit {st['stale_radar_minutes']} min). The scheduler may have stopped."})
 
+    active = {s["id"] for s in cfg["sources"]["sources"] if s.get("enabled", True)} | {"youtube-trending-au"}
     for r in conn.execute("SELECT * FROM source_health WHERE consecutive_failures>=?", (st["source_failure_alert_after"],)):
+        if r["source_id"] not in active:
+            continue
         issues.append({"kind": "source_down", "subject": r["source_id"],
                        "text": f"Source {r['source_id']} unavailable ({r['consecutive_failures']} failures in a row; last error: {r['last_error'] or 'n/a'}; last success {r['last_success'] or 'never'})."})
 
