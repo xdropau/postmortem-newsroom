@@ -1,0 +1,43 @@
+name: health
+# Bot 07 health monitor (separate from the cycle so it can notice when the cycle stops) + encrypted dashboard refresh.
+on:
+  schedule:
+    - cron: "10,40 * * * *"
+  workflow_dispatch:
+concurrency:
+  group: newsroom-data
+  cancel-in-progress: false
+permissions:
+  contents: write   # only to publish the ENCRYPTED dashboard to the gh-pages branch
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      DATA_DIR: data
+      DATA_REPO: ${{ vars.DATA_REPO }}
+      DATA_DEPLOY_KEY: ${{ secrets.DATA_DEPLOY_KEY }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: ./scripts/data_pull.sh
+      - run: python -m newsroom health
+      - name: Build encrypted dashboard
+        run: python -m newsroom dashboard --out dashboard_out
+      - name: Publish dashboard (ciphertext only)
+        run: |
+          cd dashboard_out
+          git init -q && git checkout -q -b gh-pages
+          git config user.name "newsroom-bot" && git config user.email "newsroom-bot@users.noreply.github.com"
+          git add -A && git commit -q -m "dashboard $(date -u +%FT%TZ)"
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages
+      - name: Save data
+        if: always()
+        run: ./scripts/data_push.sh

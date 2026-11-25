@@ -1,0 +1,28 @@
+{
+  "alert_threshold": 80,
+  "max_alerts_per_cycle": 5,
+  "alert_max_age_hours": 24,
+  "cluster_window_hours": 48,
+  "cluster_similarity": 0.72,
+  "stale_radar_minutes": 45,
+  "no_new_stories_hours": 6,
+  "source_failure_alert_after": 3,
+  "ops_alert_cooldown_hours": 6,
+  "briefing_hour_sydney": 7,
+  "limits": {
+    "telegram_per_day": 1000,
+    "youtube_units_per_day": 10000,
+    "llm_calls_per_day": 3,
+    "warn_fraction": 0.8
+  },
+  "primary_domains": ["sec.gov", "justice.gov", "fbi.gov", "whitehouse.gov", "congress.gov", "treasury.gov",
+    "gov.uk", "parliament.uk", "europa.eu", "afp.gov.au", "asic.gov.au", "accc.gov.au", "aph.gov.au",
+    "icc-cpi.int", "icj-cij.org", "un.org", "icij.org", "occrp.org", "ofac.treasury.gov"],
+  "infrastructure_costs": {
+    "GitHub Actions (public runner repo)": 0.0,
+    "GitHub private data repo": 0.0,
+    "GitHub Pages (encrypted dashboard)": 0.0,
+    "Telegram Bot API": 0.0,
+    "LLM drafting (disabled by default)": 0.0
+  }
+}

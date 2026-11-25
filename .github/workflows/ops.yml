@@ -1,0 +1,46 @@
+name: ops
+# Manual tools: feed audit, live self-test, acceptance report, forced briefing.
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "What to run"
+        type: choice
+        required: true
+        options: [audit, selftest, acceptance, briefing-force]
+concurrency:
+  group: newsroom-data
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  ops:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATA_DIR: data
+      DATA_REPO: ${{ vars.DATA_REPO }}
+      DATA_DEPLOY_KEY: ${{ secrets.DATA_DEPLOY_KEY }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
+      TASK: ${{ inputs.task }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: ./scripts/data_pull.sh
+      - name: Run task
+        run: |
+          case "$TASK" in
+            audit) python -m newsroom audit ;;
+            selftest) python -m newsroom selftest ;;
+            acceptance) python -m newsroom acceptance | tee "$GITHUB_STEP_SUMMARY" ;;
+            briefing-force) python -m newsroom briefing --force ;;
+          esac
+      - name: Save data
+        if: always()
+        run: ./scripts/data_push.sh

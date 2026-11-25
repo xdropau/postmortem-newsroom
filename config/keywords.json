@@ -1,0 +1,22 @@
+{
+  "categories": {
+    "Corporate scandals": ["scandal", "misconduct", "whistleblower", "cover-up", "cover up", "accounting fraud", "restatement", "non-reliance", "recall", "data misuse", "wrongdoing"],
+    "Political accountability": ["resign", "resigns", "resignation", "impeach", "inquiry", "censure", "ethics", "no-confidence", "stood down", "sacked"],
+    "Corruption": ["corruption", "bribe", "bribery", "kickback", "kickbacks", "graft", "embezzle", "embezzlement", "misappropriat"],
+    "Financial crime": ["fraud", "money laundering", "ponzi", "insider trading", "indicted", "indictment", "charged with", "securities fraud", "penalty", "settlement", "sanctions", "sanctioned", "fined", "fine of", "market manipulation"],
+    "Billionaires and corporate power": ["billionaire", "musk", "bezos", "zuckerberg", "buyout", "takeover", "antitrust", "monopoly", "acquisition", "acquire", "merger"],
+    "Technology and AI": ["artificial intelligence", "openai", "anthropic", "nvidia", "data centre", "data center", "algorithm", "chatbot", "semiconductor", "\\bai\\b"],
+    "Cybersecurity": ["cyber", "hack", "hacked", "breach", "ransomware", "data leak", "vulnerability", "zero-day", "malware"],
+    "Intelligence and espionage": ["espionage", "spy", "spies", "intelligence agency", "\\bcia\\b", "mi6", "asio", "surveillance", "foreign interference"],
+    "Government transparency": ["foia", "transparency", "leaked", "documents show", "classified", "declassified", "redacted", "freedom of information", "unsealed"],
+    "Consumer exploitation": ["scam", "class action", "price gouging", "misleading", "deceptive", "overcharg", "refund", "hidden fees", "surcharge"],
+    "Major court cases": ["verdict", "trial", "sentenced", "appeal", "supreme court", "high court", "judge", "ruling", "court", "icc", "icj"],
+    "International affairs": ["sanctions", "treaty", "summit", "ceasefire", "security council", "war ", "annex"],
+    "Australian public-interest": ["australia", "australian", "asic", "accc", "\\bafp\\b", "canberra", "sydney", "melbourne", "federal police", "royal commission", "nacc", "ibac", "icac", "\\brba\\b", "ato\\b"]
+  },
+  "priority_order": ["Financial crime", "Corruption", "Corporate scandals", "Political accountability", "Government transparency", "Intelligence and espionage", "Cybersecurity", "Billionaires and corporate power", "Technology and AI", "Consumer exploitation", "Major court cases", "Australian public-interest", "International affairs"],
+  "australia": ["australia", "australian", "sydney", "melbourne", "canberra", "asic", "accc", "\\bafp\\b", "\\brba\\b", "medibank", "optus", "telstra", "westpac", "commonwealth bank", "\\banz\\b", "\\bnab\\b"],
+  "audience_topics": ["\\bai\\b", "artificial intelligence", "bank", "billion", "million", "tax", "pension", "mortgage", "interest rate", "cost of living", "price", "jobs", "layoffs", "data breach", "scam"],
+  "investigative_terms": ["documents", "filing", "filed", "indictment", "unsealed", "leaked", "investigation", "probe", "audit", "court filing", "whistleblower", "records", "subpoena", "raid", "charges"],
+  "sensational_terms": ["shocking", "you won't believe", "bombshell", "slams", "destroys", "explosive", "rocks", "stuns", "meltdown", "epic", "goes viral", "outrage", "twitter erupts"]
+}

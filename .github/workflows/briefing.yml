@@ -1,0 +1,35 @@
+name: briefing
+# 07:00 Australia/Sydney consolidated overnight briefing. Two UTC slots cover daylight saving (AEDT=UTC+11, AEST=UTC+10);
+# the code sends once per Sydney day from 07:00 and ignores the second slot.
+on:
+  schedule:
+    - cron: "0 20 * * *"
+    - cron: "0 21 * * *"
+  workflow_dispatch:
+concurrency:
+  group: newsroom-data
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  briefing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      DATA_DIR: data
+      DATA_REPO: ${{ vars.DATA_REPO }}
+      DATA_DEPLOY_KEY: ${{ secrets.DATA_DEPLOY_KEY }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: ./scripts/data_pull.sh
+      - run: python -m newsroom briefing
+      - name: Save data
+        if: always()
+        run: ./scripts/data_push.sh
