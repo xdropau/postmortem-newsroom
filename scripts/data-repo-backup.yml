@@ -31,8 +31,8 @@ jobs:
       - name: Publish as release asset
         run: |
           TAG="backup-$(date -u +%F)"
-          gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
-          gh release create "$TAG" backup_out/postmortem-backup-*.tar.gz backup_out/postmortem-backup-*.tar.gz.sha256 \
+          gh release delete "$TAG" --repo "$DATA_REPO" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "$TAG" --repo "$DATA_REPO" backup_out/postmortem-backup-*.tar.gz backup_out/postmortem-backup-*.tar.gz.sha256 \
             --title "Weekly backup $(date -u +%F)" --notes "Compressed database export + evidence files. Restore-tested at creation." --latest=false
       - name: Retention (keep newest 12 weekly + the first backup of every month)
         run: cd code && python -m newsroom backup-retention
