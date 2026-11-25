@@ -27,7 +27,7 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
-      - run: ./scripts/data_pull.sh
+      - run: bash scripts/data_pull.sh
       - run: python -m newsroom health
       - name: Build encrypted dashboard
         run: python -m newsroom dashboard --out dashboard_out
@@ -40,4 +40,4 @@ jobs:
           git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages
       - name: Save data
         if: always()
-        run: ./scripts/data_push.sh
+        run: bash scripts/data_push.sh
