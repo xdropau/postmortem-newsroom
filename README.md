@@ -53,3 +53,11 @@ Dedup: canonical URL, content hash, headline similarity (48 h window). Same stor
 
 Publication is never automatic: nothing in this system posts to Shopify, YouTube, Facebook, Instagram or TikTok.
 Audience and commercial dashboards are NOT built (no data source is connected); the tab says so instead of showing invented numbers.
+
+## Review desk, audit and backups
+- Dashboard: Top 5 today cards, three columns (New and worth a look / Needs your review / Ready to approve), filters, everything else under "More". Still AES-256-GCM encrypted.
+- 07:00 Sydney briefing: top 5 only + one pipeline line. Priority alerts still need score 80+ and the evidence gate.
+- `/secondcheck ID`: re-opens the stored sources and reports PASS/FAIL/UNCLEAR per check with a verbatim extract. MATERIAL checks (source opened, headline, figures, names, quotes, recycled, satire/rumour, allegation vs fact) block approval; ADVISORY ones (dates, denials, contradiction, corroboration) are shown only. A human can settle a check with `/scresolve` (note required, original result kept).
+- Evidence archive (private data repo only): URL, issuer, publication and retrieval time, HTTP status, SHA-256, <=300-char extract, archive.org capture link; FULL copies only for official public records. `/evidence ID` writes a per-story bundle. Published stories get a permanent bundle under `evidence/permanent/PM-xxxxxx/` tied to the article URL.
+- Change log: append-only, hash-chained, written by database triggers. Honest limit: someone with raw file access could rebuild the whole chain; the private repo and the head hash are the protection.
+- Backups: weekly `backup-YYYY-MM-DD` release asset in the private data repo, restore-tested; keeps newest 12 plus the first of every month. Laptop copy: `python -m newsroom export-backup`.
