@@ -68,7 +68,8 @@ def test_briefing_sent_once_per_sydney_day_and_not_before_7(conn, cfg, tg):
     assert briefing.maybe_send(conn, cfg, n, NOW - timedelta(hours=2)) == "not-due"     # 05:00 Sydney
     assert briefing.maybe_send(conn, cfg, n, NOW) == "sent"                              # 07:00 Sydney
     assert briefing.maybe_send(conn, cfg, n, NOW + timedelta(hours=1)) == "duplicate"    # second cron slot
-    assert "overnight briefing" in t.sent[0] and "Top stories" in t.sent[0]
+    assert "THE POST-MORTEM" in t.sent[0] and "Top 5 today" in t.sent[0] and "Pipeline:" in t.sent[0]
+    assert t.sent[0].count("Open: /story") <= 5
 
 
 # ---------- dashboard ----------

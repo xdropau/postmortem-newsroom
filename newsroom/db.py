@@ -99,6 +99,83 @@ CREATE TABLE IF NOT EXISTS story_links(
   id INTEGER PRIMARY KEY AUTOINCREMENT, story_id INTEGER NOT NULL, kind TEXT NOT NULL, ref TEXT NOT NULL, created_at TEXT,
   UNIQUE(story_id, kind, ref)
 );
+CREATE TABLE IF NOT EXISTS second_checks(
+  id INTEGER PRIMARY KEY AUTOINCREMENT, story_id INTEGER NOT NULL, run_at TEXT NOT NULL, by TEXT, docs_read INTEGER DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS second_check_items(
+  id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER NOT NULL, story_id INTEGER NOT NULL, key TEXT, label TEXT, claim TEXT,
+  result TEXT, evidence TEXT, source_url TEXT, material INTEGER DEFAULT 1,
+  resolved_result TEXT, resolved_note TEXT, resolved_at TEXT
+);
+CREATE INDEX IF NOT EXISTS ix_sci_run ON second_check_items(run_id);
+
+CREATE TABLE IF NOT EXISTS evidence_archive(
+  id INTEGER PRIMARY KEY AUTOINCREMENT, story_id INTEGER NOT NULL, url TEXT NOT NULL, issuer TEXT, published_at TEXT,
+  retrieved_at TEXT NOT NULL, http_status INTEGER, sha256 TEXT, bytes INTEGER, extract TEXT,
+  wayback_url TEXT, wayback_status TEXT, full_copy_path TEXT, official INTEGER DEFAULT 0, error TEXT,
+  UNIQUE(story_id, url, sha256)
+);
+
+CREATE TABLE IF NOT EXISTS change_log(
+  id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, story_id INTEGER, kind TEXT NOT NULL, ref TEXT, detail TEXT,
+  prev_hash TEXT, row_hash TEXT
+);
+CREATE INDEX IF NOT EXISTS ix_cl_story ON change_log(story_id);
+CREATE TRIGGER IF NOT EXISTS cl_no_delete BEFORE DELETE ON change_log BEGIN SELECT RAISE(ABORT,'change_log is append-only'); END;
+CREATE TRIGGER IF NOT EXISTS cl_no_edit BEFORE UPDATE ON change_log WHEN OLD.row_hash IS NOT NULL
+  BEGIN SELECT RAISE(ABORT,'change_log is append-only'); END;
+
+-- history tables can be appended to, never deleted from; versions are immutable
+CREATE TRIGGER IF NOT EXISTS ap_no_delete BEFORE DELETE ON approvals BEGIN SELECT RAISE(ABORT,'approvals history is append-only'); END;
+CREATE TRIGGER IF NOT EXISTS co_no_delete BEFORE DELETE ON corrections BEGIN SELECT RAISE(ABORT,'corrections history is append-only'); END;
+CREATE TRIGGER IF NOT EXISTS cv_no_delete BEFORE DELETE ON content_versions BEGIN SELECT RAISE(ABORT,'versions are append-only'); END;
+CREATE TRIGGER IF NOT EXISTS cv_no_edit BEFORE UPDATE ON content_versions BEGIN SELECT RAISE(ABORT,'a saved version is immutable; save a new version'); END;
+CREATE TRIGGER IF NOT EXISTS ea_no_delete BEFORE DELETE ON evidence_archive BEGIN SELECT RAISE(ABORT,'evidence archive is append-only'); END;
+CREATE TRIGGER IF NOT EXISTS sc_no_delete BEFORE DELETE ON second_checks BEGIN SELECT RAISE(ABORT,'second checks are append-only'); END;
+CREATE TRIGGER IF NOT EXISTS sci_no_delete BEFORE DELETE ON second_check_items BEGIN SELECT RAISE(ABORT,'second checks are append-only'); END;
+
+-- automatic logging: every change to claims, approvals, versions, corrections, status and second checks is recorded
+CREATE TRIGGER IF NOT EXISTS lg_claim_ins AFTER INSERT ON claims BEGIN
+  INSERT INTO change_log(at,story_id,kind,ref,detail) VALUES(strftime('%Y-%m-%dT%H:%M:%SZ','now'),NEW.story_id,'claim_created','claim '||NEW.id,NEW.status||': '||substr(NEW.claim_text,1,160)); END;
+CREATE TRIGGER IF NOT EXISTS lg_claim_upd AFTER UPDATE OF status,note,evidence,source_url ON claims
+  WHEN IFNULL(OLD.status,'')<>IFNULL(NEW.status,'') OR IFNULL(OLD.note,'')<>IFNULL(NEW.note,'') BEGIN
+  INSERT INTO change_log(at,story_id,kind,ref,detail) VALUES(strftime('%Y-%m-%dT%H:%M:%SZ','now'),NEW.story_id,'claim_changed','claim '||NEW.id,
+    IFNULL(OLD.status,'')||' -> '||NEW.status||IFNULL(' | note: '||substr(NEW.note,1,120),'')||IFNULL(' | evidence: '||substr(NEW.evidence,1,120),'')); END;
+CREATE TRIGGER IF NOT EXISTS lg_approval AFTER INSERT ON approvals BEGIN
+  INSERT INTO change_log(at,story_id,kind,ref,detail) VALUES(strftime('%Y-%m-%dT%H:%M:%SZ','now'),NEW.story_id,'approval_'||NEW.action,IFNULL(NEW.kind,'story')||IFNULL(' v'||NEW.version,''),
+    IFNULL('dest='||NEW.destination,'')||IFNULL(' hash='||substr(NEW.content_hash,1,12),'')||IFNULL(' | '||substr(NEW.reason,1,160),'')); END;
+CREATE TRIGGER IF NOT EXISTS lg_approval_void AFTER UPDATE OF valid ON approvals WHEN OLD.valid=1 AND NEW.valid=0 BEGIN
+  INSERT INTO change_log(at,story_id,kind,ref,detail) VALUES(strftime('%Y-%m-%dT%H:%M:%SZ','now'),NEW.story_id,'approval_voided',IFNULL(NEW.kind,'story')||IFNULL(' v'||NEW.version,''),IFNULL(NEW.invalidated_reason,'')); END;
+CREATE TRIGGER IF NOT EXISTS lg_version AFTER INSERT ON content_versions BEGIN
+  INSERT INTO change_log(at,story_id,kind,ref,detail) VALUES(strftime('%Y-%m-%dT%H:%M:%SZ','now'),NEW.story_id,'version_saved',NEW.kind||' v'||NEW.version,'hash='||substr(NEW.content_hash,1,12)||' by '||IFNULL(NEW.author,'')); END;
+CREATE TRIGGER IF NOT EXISTS lg_correction AFTER INSERT ON corrections BEGIN
+  INSERT INTO change_log(at,story_id,kind,ref,detail) VALUES(strftime('%Y-%m-%dT%H:%M:%SZ','now'),NEW.story_id,'correction_logged','correction '||NEW.id,IFNULL(NEW.severity,'')||': '||substr(NEW.text,1,200)); END;
+CREATE TRIGGER IF NOT EXISTS lg_correction_pub AFTER UPDATE OF status ON corrections WHEN OLD.status<>NEW.status BEGIN
+  INSERT INTO change_log(at,story_id,kind,ref,detail) VALUES(strftime('%Y-%m-%dT%H:%M:%SZ','now'),NEW.story_id,'correction_'||NEW.status,'correction '||NEW.id,IFNULL(NEW.note,'')); END;
+CREATE TRIGGER IF NOT EXISTS lg_status AFTER UPDATE OF editorial_status,publication_status ON stories
+  WHEN IFNULL(OLD.editorial_status,'')<>IFNULL(NEW.editorial_status,'') OR IFNULL(OLD.publication_status,'')<>IFNULL(NEW.publication_status,'') BEGIN
+  INSERT INTO change_log(at,story_id,kind,ref,detail) VALUES(strftime('%Y-%m-%dT%H:%M:%SZ','now'),NEW.id,
+    CASE WHEN NEW.publication_status<>IFNULL(OLD.publication_status,'') THEN 'publication_record' ELSE 'editorial_status' END,'story',
+    'editorial '||IFNULL(OLD.editorial_status,'')||' -> '||NEW.editorial_status||'; publication '||IFNULL(OLD.publication_status,'')||' -> '||NEW.publication_status); END;
+CREATE TRIGGER IF NOT EXISTS lg_second AFTER INSERT ON second_checks BEGIN
+  INSERT INTO change_log(at,story_id,kind,ref,detail) VALUES(strftime('%Y-%m-%dT%H:%M:%SZ','now'),NEW.story_id,'second_check_run','run '||NEW.id,'by '||IFNULL(NEW.by,'')||'; pages read '||NEW.docs_read); END;
+CREATE TRIGGER IF NOT EXISTS lg_second_resolve AFTER UPDATE OF resolved_result ON second_check_items WHEN NEW.resolved_result IS NOT NULL BEGIN
+  INSERT INTO change_log(at,story_id,kind,ref,detail) VALUES(strftime('%Y-%m-%dT%H:%M:%SZ','now'),NEW.story_id,'second_check_resolved',NEW.key,
+    'human set '||NEW.resolved_result||' (was '||NEW.result||'): '||IFNULL(substr(NEW.resolved_note,1,160),'')); END;
+CREATE TRIGGER IF NOT EXISTS lg_evidence AFTER INSERT ON evidence_archive BEGIN
+  INSERT INTO change_log(at,story_id,kind,ref,detail) VALUES(strftime('%Y-%m-%dT%H:%M:%SZ','now'),NEW.story_id,'evidence_archived',NEW.url,
+    'http '||IFNULL(NEW.http_status,'-')||' sha256='||IFNULL(substr(NEW.sha256,1,16),'-')||IFNULL(' wayback='||NEW.wayback_url,'')); END;
+CREATE TRIGGER IF NOT EXISTS perm_stories BEFORE DELETE ON stories WHEN EXISTS(SELECT 1 FROM stories s WHERE s.id=OLD.id AND (s.editorial_status IN ('verifying','ready','approved','published','rejected') OR s.article_id IS NOT NULL OR s.video_id IS NOT NULL OR EXISTS(SELECT 1 FROM approvals a WHERE a.story_id=s.id) OR EXISTS(SELECT 1 FROM evidence_archive e WHERE e.story_id=s.id) OR EXISTS(SELECT 1 FROM corrections c WHERE c.story_id=s.id) OR EXISTS(SELECT 1 FROM content_versions v WHERE v.story_id=s.id) OR EXISTS(SELECT 1 FROM second_checks k WHERE k.story_id=s.id) OR EXISTS(SELECT 1 FROM story_links l WHERE l.story_id=s.id)))
+  BEGIN SELECT RAISE(ABORT,'permanent record: story has editorial history and cannot be pruned'); END;
+CREATE TRIGGER IF NOT EXISTS perm_items BEFORE DELETE ON items WHEN EXISTS(SELECT 1 FROM stories s WHERE s.id=OLD.story_id AND (s.editorial_status IN ('verifying','ready','approved','published','rejected') OR s.article_id IS NOT NULL OR s.video_id IS NOT NULL OR EXISTS(SELECT 1 FROM approvals a WHERE a.story_id=s.id) OR EXISTS(SELECT 1 FROM evidence_archive e WHERE e.story_id=s.id) OR EXISTS(SELECT 1 FROM corrections c WHERE c.story_id=s.id) OR EXISTS(SELECT 1 FROM content_versions v WHERE v.story_id=s.id) OR EXISTS(SELECT 1 FROM second_checks k WHERE k.story_id=s.id) OR EXISTS(SELECT 1 FROM story_links l WHERE l.story_id=s.id)))
+  BEGIN SELECT RAISE(ABORT,'permanent record: story has editorial history and cannot be pruned'); END;
+CREATE TRIGGER IF NOT EXISTS perm_claims BEFORE DELETE ON claims WHEN EXISTS(SELECT 1 FROM stories s WHERE s.id=OLD.story_id AND (s.editorial_status IN ('verifying','ready','approved','published','rejected') OR s.article_id IS NOT NULL OR s.video_id IS NOT NULL OR EXISTS(SELECT 1 FROM approvals a WHERE a.story_id=s.id) OR EXISTS(SELECT 1 FROM evidence_archive e WHERE e.story_id=s.id) OR EXISTS(SELECT 1 FROM corrections c WHERE c.story_id=s.id) OR EXISTS(SELECT 1 FROM content_versions v WHERE v.story_id=s.id) OR EXISTS(SELECT 1 FROM second_checks k WHERE k.story_id=s.id) OR EXISTS(SELECT 1 FROM story_links l WHERE l.story_id=s.id)))
+  BEGIN SELECT RAISE(ABORT,'permanent record: story has editorial history and cannot be pruned'); END;
+CREATE TRIGGER IF NOT EXISTS perm_source_checks BEFORE DELETE ON source_checks WHEN EXISTS(SELECT 1 FROM stories s WHERE s.id=OLD.story_id AND (s.editorial_status IN ('verifying','ready','approved','published','rejected') OR s.article_id IS NOT NULL OR s.video_id IS NOT NULL OR EXISTS(SELECT 1 FROM approvals a WHERE a.story_id=s.id) OR EXISTS(SELECT 1 FROM evidence_archive e WHERE e.story_id=s.id) OR EXISTS(SELECT 1 FROM corrections c WHERE c.story_id=s.id) OR EXISTS(SELECT 1 FROM content_versions v WHERE v.story_id=s.id) OR EXISTS(SELECT 1 FROM second_checks k WHERE k.story_id=s.id) OR EXISTS(SELECT 1 FROM story_links l WHERE l.story_id=s.id)))
+  BEGIN SELECT RAISE(ABORT,'permanent record: story has editorial history and cannot be pruned'); END;
+
+CREATE TRIGGER IF NOT EXISTS lg_live AFTER UPDATE OF status ON live_updates WHEN OLD.status<>NEW.status BEGIN
+  INSERT INTO change_log(at,story_id,kind,ref,detail) VALUES(strftime('%Y-%m-%dT%H:%M:%SZ','now'),NEW.story_id,'live_update_'||NEW.status,'update '||NEW.id,substr(NEW.text,1,120)); END;
 """
 
 

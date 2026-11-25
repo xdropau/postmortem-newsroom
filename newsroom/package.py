@@ -110,6 +110,8 @@ TITLE & THUMBNAIL: NOT PREPARED (needs famous name + question/number; host image
 AI / PLATFORM DISCLOSURES: Altered/AI content = Yes on YouTube and Facebook (standing practice).
 APPROVAL: pending. Publish only after explicit human approval (/approve {story_id} in Telegram).
 """
+    from . import secondcheck
+    partE += "\n<!-- SECOND-CHECK -->\n" + secondcheck.part_e_block(conn, story_id) + "\n"
     files = {"01_fact_register.md": fact_register, "02_sources.md": sources, "03_hooks.txt": hooks + "\n",
              "04_drafting_brief.md": brief, "05_part_e_report.md": partE}
     for name, body in files.items():

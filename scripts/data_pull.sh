@@ -10,3 +10,7 @@ export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/data_key -o IdentitiesOnly=yes"
 rm -rf data
 git clone --depth 1 "git@github.com:${DATA_REPO}.git" data
 mkdir -p data
+mkdir -p data/.github/workflows
+if [ -n "${GITHUB_REPOSITORY:-}" ]; then   # weekly-backup workflow lives in the private data repo; keep it current
+  sed "s#__CODE_REPO__#${GITHUB_REPOSITORY}#" scripts/data-repo-backup.yml > data/.github/workflows/backup.yml
+fi

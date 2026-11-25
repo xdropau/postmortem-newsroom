@@ -48,7 +48,12 @@ def build_data(conn, cfg, now) -> dict:
         "latency": ed.latency_metrics(conn),
         "links": rows("SELECT * FROM story_links ORDER BY id DESC LIMIT 300"),
     }
-    return {"editorial": editorial, "bot_note": "Audience and commercial data are not connected yet (needs YouTube, Search Console and Shopify access).", "generated_at": iso(now), "threshold": cfg["settings"]["alert_threshold"], "stories": stories, "sources": src,
+    from . import cards as cd
+    card_rows = conn.execute("SELECT * FROM stories WHERE lead_only=0 AND (last_item_at>=? OR editorial_status IN ('verifying','ready','approved')) "
+                             "ORDER BY score DESC LIMIT 150", (since,)).fetchall()
+    cards = [cd.card(conn, r, now) for r in card_rows]
+    top5 = [c["id"] for c in cd.top_stories(conn, now)]
+    return {"cards": cards, "top5": top5, "editorial": editorial, "bot_note": "Audience and commercial data are not connected yet (needs YouTube, Search Console and Shopify access).", "generated_at": iso(now), "threshold": cfg["settings"]["alert_threshold"], "stories": stories, "sources": src,
             "runs": runs, "recent_runs": recent, "usage": usage, "limits": cfg["settings"]["limits"],
             "costs": costs, "cost_total": round(sum(costs.values()), 2)}
 
@@ -62,13 +67,36 @@ def encrypt(payload: dict, password: str, iterations: int = ITER) -> str:
 
 TEMPLATE = """<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>The Post-Mortem Newsroom</title>
-<style>body{font-family:system-ui,sans-serif;margin:0;background:#111;color:#eee}header{padding:14px 18px;border-bottom:1px solid #333}
-h1{font-size:18px;margin:0}main{padding:14px 18px}input,button{font-size:16px;padding:8px}nav button{margin:2px;background:#222;color:#eee;border:1px solid #444;border-radius:4px}
-nav button.on{background:#b3202a}table{border-collapse:collapse;width:100%;font-size:14px}td,th{border-bottom:1px solid #2a2a2a;padding:6px;text-align:left;vertical-align:top}
-a{color:#7db7ff}.s{font-weight:bold}.bad{color:#ff7a7a}.ok{color:#7be29a}small{color:#999}</style></head><body>
-<header><h1>THE POST-MORTEM &middot; Newsroom <small>Documents. Money. Evidence.</small></h1></header>
+<style>
+:root{--ink:#0B0B0C;--paper:#F4F0E8;--red:#B51F2A;--stone:#A59B8C}
+*{box-sizing:border-box}body{font-family:Georgia,"Source Serif 4",serif;margin:0;background:var(--paper);color:var(--ink);line-height:1.45}
+header{padding:14px 20px;border-bottom:2px solid var(--ink)}h1{font-size:19px;margin:0;letter-spacing:.08em}h1 small{font:12px system-ui;letter-spacing:0;color:#555;margin-left:8px}
+main{max-width:1240px;margin:0 auto;padding:14px 18px 60px}h2{font-size:15px;letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--stone);padding-bottom:4px;margin:22px 0 10px}
+h2 small{font:12px system-ui;text-transform:none;letter-spacing:0;color:#666}
+input,button,select{font:15px system-ui;padding:7px 9px;border:1px solid var(--stone);background:#fff;color:var(--ink);border-radius:2px}
+button{cursor:pointer}button.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.card{background:#fff;border:1px solid var(--stone);border-left:4px solid var(--red);padding:11px 14px;margin:0 0 12px}
+.card.small{padding:9px 11px;font-size:14px}.ch{display:flex;align-items:flex-start;gap:8px}
+.score{background:var(--red);color:#fff;font:600 13px system-ui;padding:2px 7px;border-radius:2px;min-width:30px;text-align:center}
+.hl{font-weight:700;font-size:17px;color:var(--ink);text-decoration:none;border-bottom:1px solid var(--stone)}.small .hl{font-size:15px}
+.sum,.why,.hook,.meta,.cmds,.pills{margin:6px 0 0}.meta{font:13px system-ui;color:#555}.pills .pill,.pill{font:12px system-ui;border:1px solid var(--stone);padding:1px 8px;border-radius:10px;margin-right:4px;color:#333;display:inline-block}
+.pill.ok{background:var(--ink);border-color:var(--ink);color:var(--paper)}.pill.warn{border-color:var(--red);color:var(--red)}
+code{font:13px ui-monospace,Consolas,monospace;background:var(--paper);border:1px solid var(--stone);padding:1px 6px;cursor:pointer;border-radius:2px;white-space:nowrap}code.copied{background:var(--ink);color:var(--paper)}
+.cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}@media(max-width:900px){.cols{grid-template-columns:1fr}}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;font:14px system-ui;margin:10px 0}.empty{color:#666;font:14px system-ui;padding:8px 0}
+details{margin-top:26px;border-top:2px solid var(--ink);padding-top:8px}summary{font:600 14px system-ui;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;padding:6px 0}
+nav button{margin:2px 3px 2px 0}table{border-collapse:collapse;width:100%;font:13px system-ui;background:#fff}td,th{border-bottom:1px solid #e3ddd0;padding:6px;text-align:left;vertical-align:top}
+a{color:var(--ink)}.bad{color:var(--red)}small{color:#666}
+</style></head><body>
+<header><h1>THE POST-MORTEM <small>Newsroom review desk. Nothing here publishes anything.</small></h1></header>
 <main><div id="lock"><p>Enter dashboard password</p><input id="pw" type="password" autocomplete="current-password"> <button id="go">Unlock</button><p id="err" class="bad"></p></div>
-<div id="app" hidden><nav id="tabs"></nav><p><small id="meta"></small></p><div id="view"></div></div></main>
+<div id="app" hidden><p><small id="meta"></small></p>
+<h2>Top 5 today <small>highest score in the last 24 hours</small></h2><div id="top5"></div>
+<div class="filters" id="filters"></div>
+<div class="cols"><section><h2>New and worth a look</h2><div id="colNew"></div></section>
+<section><h2>Needs your review</h2><div id="colReview"></div></section>
+<section><h2>Ready to approve</h2><div id="colReady"></div></section></div>
+<details id="more"><summary>More</summary><nav id="tabs"></nav><div id="view"></div></details></div></main>
 <script>
 const B64="__BLOB__",ITER=__ITER__;
 const $=id=>document.getElementById(id);
@@ -78,6 +106,33 @@ async function unlock(){try{const raw=Uint8Array.from(atob(B64),c=>c.charCodeAt(
 const km=await crypto.subtle.importKey('raw',new TextEncoder().encode($('pw').value),'PBKDF2',false,['deriveKey']);
 const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:ITER,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
 const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,ct);render(JSON.parse(new TextDecoder().decode(pt)))}catch(e){$('err').textContent='Wrong password or corrupted data.'}}
+function el(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
+function cmd(x){const c=el('code',null,x);c.title='Click to copy';c.onclick=()=>{try{navigator.clipboard.writeText(x)}catch(e){}c.classList.add('copied')};return c}
+function secPill(s){if(!s||s.overall==='NOT RUN')return el('span','pill','2nd check: not run');
+return el('span','pill '+(s.overall==='PASS'?'ok':'warn'),'2nd check: '+s.overall+(s.fail+s.unclear?' ('+(s.fail+s.unclear)+' open)':''))}
+function pills(c){const p=el('p','pills');p.appendChild(el('span','pill',c.is_primary?'Official source':'News report'));p.appendChild(secPill(c.second));p.appendChild(el('span','pill',c.status_word));
+if(c.alert)p.appendChild(el('span','pill warn','Priority 80+'));return p}
+function cmds(list){const p=el('p','cmds');p.appendChild(document.createTextNode('Telegram: '));list.forEach(x=>{p.appendChild(cmd(x));p.appendChild(document.createTextNode(' '))});return p}
+function bigCard(c){const d=el('article','card');const h=el('div','ch');h.appendChild(el('span','score',c.score));const a=link(c.link,c.headline);a.className='hl';h.appendChild(a);d.appendChild(h);
+d.appendChild(el('p','sum',c.summary));const w=el('p','why');w.appendChild(el('b',null,'Why it matters: '));w.appendChild(document.createTextNode(c.why));d.appendChild(w);
+d.appendChild(el('p','meta',c.age+' | '+c.category+' | '+c.verification));d.appendChild(pills(c));
+const hk=el('p','hook');hk.appendChild(el('b',null,'Suggested hook: '));hk.appendChild(document.createTextNode(c.hook));d.appendChild(hk);
+d.appendChild(cmds([c.cmd_open,c.cmd_second,c.cmd_approve]));return d}
+function smallCard(c,next){const d=el('article','card small');const h=el('div','ch');h.appendChild(el('span','score',c.score));const a=link(c.link,c.headline);a.className='hl';h.appendChild(a);d.appendChild(h);
+d.appendChild(el('p','meta',c.age+' | '+c.category));d.appendChild(pills(c));d.appendChild(cmds(next));return d}
+function fill(id,list,mk){const box=$(id);box.replaceChildren();if(!list.length){box.appendChild(el('p','empty','Nothing here right now.'));return}list.slice(0,12).forEach(c=>box.appendChild(mk(c)))}
+function renderHome(D){const byId={};D.cards.forEach(c=>byId[c.id]=c);const F=$('filters');
+const cats=[...new Set(D.cards.map(c=>c.category))].sort();
+function sel(label,opts){const l=el('label',null,label+' ');const s=el('select');opts.forEach(o=>{const x=el('option',null,o[1]);x.value=o[0];s.appendChild(x)});s.onchange=draw;l.appendChild(s);F.appendChild(l);return s}
+const fc=sel('Category',[['','All'],...cats.map(x=>[x,x])]),fs=sel('Score',[['0','Any'],['40','40+'],['60','60+'],['80','80+ (alerts)']]),
+fst=sel('Status',[['','All'],['new','New'],['verifying','Needs review'],['ready','Ready to approve'],['approved','Approved']]);
+function ok(c){return(!fc.value||c.category===fc.value)&&c.score>=+fs.value&&(!fst.value||c.status===fst.value)}
+function draw(){const all=D.cards.filter(ok);
+fill('top5',D.top5.map(i=>byId[i]).filter(c=>c&&ok(c)),bigCard);
+fill('colNew',all.filter(c=>c.status==='new'&&c.score>=45),c=>smallCard(c,[c.cmd_open,c.cmd_second]));
+fill('colReview',all.filter(c=>c.status==='verifying'||(c.status==='ready'&&c.second.overall!=='PASS')),c=>smallCard(c,[c.cmd_open,c.cmd_second]));
+fill('colReady',all.filter(c=>c.status==='ready'&&c.second.overall==='PASS'),c=>smallCard(c,[c.cmd_approve,c.cmd_open]))}
+draw()}
 function table(cols,rows){const t=document.createElement('table');const h=t.insertRow();cols.forEach(c=>h.appendChild(td(c[0],1)));
 rows.forEach(r=>{const tr=t.insertRow();cols.forEach(c=>tr.appendChild(td(c[1](r))))});return t}
 function render(D){$('lock').hidden=true;$('app').hidden=false;$('meta').textContent='Updated '+D.generated_at+' (UTC). Refreshes about every 30 min.';
@@ -109,7 +164,7 @@ tabs['Latency']=()=>{const d=document.createElement('div');const o=E.latency.ove
 d.appendChild(T([['Source organisation',r=>r.org],['Items',r=>r.n],['Median (min)',r=>r.median_min],['90th pct (min)',r=>r.p90_min]],E.latency.source_to_detection));
 d.appendChild(document.createElement('hr'));d.appendChild(T([['Stage',r=>r[0]],['Samples',r=>r[1].n],['Median (min)',r=>r[1].median]],Object.entries(E.latency.stages)));return d};
 tabs['Audience & Commercial']=()=>{const p=document.createElement('p');p.textContent=D.bot_note+' Nothing is shown here rather than invented figures.';return p};
-const nav=$('tabs'),view=$('view');Object.keys(tabs).forEach((n,i)=>{const b=document.createElement('button');b.textContent=n;b.onclick=()=>{[...nav.children].forEach(x=>x.classList.remove('on'));b.classList.add('on');view.replaceChildren(tabs[n]())};nav.appendChild(b);if(i===0)b.click()})}
+const nav=$('tabs'),view=$('view');Object.keys(tabs).forEach((n,i)=>{const b=document.createElement('button');b.textContent=n;b.onclick=()=>{[...nav.children].forEach(x=>x.classList.remove('on'));b.classList.add('on');view.replaceChildren(tabs[n]())};nav.appendChild(b);if(i===0)b.click()});renderHome(D)}
 $('go').onclick=unlock;$('pw').addEventListener('keydown',e=>{if(e.key==='Enter')unlock()});
 </script></body></html>"""
 

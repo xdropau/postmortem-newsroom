@@ -189,6 +189,9 @@ def test_commands_only_from_owner_and_approval_gate(conn, cfg, tg):
     for c in conn.execute("SELECT id FROM claims WHERE status='UNVERIFIED'").fetchall():
         commands.handle(conn, f"/verify 1 {c['id']} VERIFIED checked", NOW)
     assert conn.execute("SELECT editorial_status e FROM stories").fetchone()["e"] == "ready"
+    assert "second check not run" in commands.handle(conn, "/approve 1", NOW)
+    from newsroom import secondcheck as sc
+    sc.store(conn, 1, [sc._item("headline", "h", "PASS", "x")], NOW)
     assert "no saved draft" in commands.handle(conn, "/approve 1", NOW)
     assert "Cannot mark published" in commands.handle(conn, "/published 1", NOW)
     from newsroom import editorial as ed

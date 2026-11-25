@@ -1,0 +1,38 @@
+name: weekly-backup
+# Lives in the PRIVATE data repo (copied there by data_pull.sh). Runs inside that repo, so the built-in token can create
+# releases here: no personal access token and no extra secret is needed. Free private-repo Actions minutes are ample (~1 min/week).
+on:
+  schedule:
+    - cron: "30 18 * * 0"      # Sunday 18:30 UTC = Monday 05:30 Sydney (AEDT)
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: weekly-backup
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      DATA_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: data }
+      - uses: actions/checkout@v4
+        with: { repository: "__CODE_REPO__", path: code }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r code/requirements.txt
+      - name: Create backup
+        run: cd code && DATA_DIR=../data python -m newsroom backup --out ../backup_out
+      - name: Restore test (a backup that cannot be restored fails the job)
+        run: cd code && python -m newsroom restore-test ../backup_out/postmortem-backup-*.tar.gz | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Publish as release asset
+        run: |
+          TAG="backup-$(date -u +%F)"
+          gh release delete "$TAG" --yes --cleanup-tag 2>/dev/null || true
+          gh release create "$TAG" backup_out/postmortem-backup-*.tar.gz backup_out/postmortem-backup-*.tar.gz.sha256 \
+            --title "Weekly backup $(date -u +%F)" --notes "Compressed database export + evidence files. Restore-tested at creation." --latest=false
+      - name: Retention (keep newest 12 weekly + the first backup of every month)
+        run: cd code && python -m newsroom backup-retention

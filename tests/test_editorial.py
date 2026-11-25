@@ -5,6 +5,7 @@ import pytest
 
 from conftest import NOW
 from newsroom import editorial as ed
+from newsroom import secondcheck as sc
 from newsroom.db import connect
 
 
@@ -17,6 +18,7 @@ def db(tmp_path):
     c.execute("INSERT INTO items(story_id,source_id,org,bot,tier,title,url,canonical_url,published_at,pub_known,detected_at) "
               "VALUES(1,'sec','SEC','primary','primary','Charges','https://sec.gov/a','https://sec.gov/a','2026-11-24T19:00:00Z',1,'2026-11-24T19:10:00Z')")
     c.commit()
+    sc.store(c, 1, [sc._item("headline", "h", "PASS", "x")], NOW)   # a passing second check
     return c
 
 

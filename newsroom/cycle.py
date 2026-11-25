@@ -5,7 +5,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
-from . import editorial
+from . import changelog, editorial
 from .config import sources_for
 from .db import bump_usage
 from .fetch import FetchError, http_get, parse_feed
@@ -141,6 +141,7 @@ def run_cycle(conn, cfg, notifier, now, get=http_get, data_dir="data") -> dict:
         out["live_drafts"] = editorial.discover_live_updates(conn, now)
     except Exception as ex:  # noqa: BLE001
         record_run(conn, "editorial", now, now, "error", detail=f"{type(ex).__name__}: {ex}")
+    changelog.seal(conn)
     try:
         out["alerts"] = send_alerts(conn, notifier, cfg, now, get)
     except Exception as ex:  # noqa: BLE001

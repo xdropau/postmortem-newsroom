@@ -12,7 +12,7 @@ from .db import kv_get, kv_set
 from .fetch import FetchError, http_get, parse_feed
 from .ingest import ingest, rescore_recent
 from .notify import e
-from . import editorial as ed
+from . import changelog, editorial as ed, secondcheck as sc
 from .package import build_package
 from .util import human_age, iso, parse_iso
 from .verify import seed_claims, open_sources
@@ -132,6 +132,10 @@ def editorial_selftest(now) -> tuple[bool, list[str]]:
         c.execute("UPDATE claims SET status='VERIFIED'")
         c.commit()
         chk("unapproved content cannot be published", not ed.mark_published(c, 1, now)["ok"])
+        chk("approval refused until a second check has been run", "second check not run" in ed.approve(c, 1, now).get("error", ""))
+        sc.store(c, 1, [sc._item("figures", "f", "UNCLEAR", "x")], now)
+        chk("approval refused while a material second-check item is UNCLEAR", "second check UNCLEAR" in ed.approve(c, 1, now).get("error", ""))
+        sc.store(c, 1, [sc._item("figures", "f", "PASS", "x")], now)
         chk("approval recorded against version 1", ed.approve(c, 1, now)["ok"] and ed.can_publish(c, 1)[0])
         r = ed.save_version(c, 1, "article", "v1 text with a changed figure", now)
         chk("material edit voids the approval", r["invalidated"] == 1 and not ed.can_publish(c, 1)[0])
@@ -143,6 +147,14 @@ def editorial_selftest(now) -> tuple[bool, list[str]]:
         ed.live_open(c, 1, now)
         u = ed.live_add_update(c, 1, "update", now, "https://example.org/x")["id"]
         chk("live update is not public until approved", ed.live_publishable(c, 1) == [] and ed.live_approve_update(c, u, now)["ok"] and len(ed.live_publishable(c, 1)) == 1)
+        changelog.seal(c)
+        cl_ok, cl_n, _ = changelog.verify(c)
+        chk(f"change log is hash-chained and intact ({cl_n} rows)", cl_ok and cl_n >= 8)
+        try:
+            c.execute("DELETE FROM approvals")
+            chk("approval history cannot be deleted", False)
+        except Exception:  # noqa: BLE001
+            chk("approval history cannot be deleted", True)
         c.close()
     return ok, out
 

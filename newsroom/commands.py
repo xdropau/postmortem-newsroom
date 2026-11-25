@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import json
 
-from . import editorial as ed
+from . import changelog, editorial as ed, evidence, secondcheck
+import os
 from .db import kv_get, kv_set
 from .notify import e
 from .util import iso
@@ -60,6 +61,26 @@ def handle(conn, text: str, now) -> str:
                 conn.execute("UPDATE stories SET editorial_status='ready' WHERE id=?", (sid,))
                 conn.commit()
             return f"Claim #{cid} set. Story status {refresh_status(conn, sid)}. " + ("All claims resolved: READY for approval." if ok else f"{len(out)} UNVERIFIED remain.")
+        if cmd == "/secondcheck":
+            secondcheck.run(conn, sid, now)
+            secondcheck.write_part_e(conn, sid, os.environ.get("DATA_DIR", "data"))
+            return secondcheck.telegram_text(conn, sid)
+        if cmd == "/scresolve":     # /scresolve ID KEY PASS|FAIL|UNCLEAR note...
+            if secondcheck.resolve(conn, sid, parts[2], parts[3], " ".join(parts[4:]), now):
+                secondcheck.write_part_e(conn, sid, os.environ.get("DATA_DIR", "data"))
+                return secondcheck.telegram_text(conn, sid)
+            return "Could not resolve. Use: /scresolve ID KEY PASS|FAIL|UNCLEAR note (a note of 3+ characters is required). Keys: " + ", ".join(secondcheck.MATERIAL + secondcheck.ADVISORY)
+        if cmd == "/evidence":
+            from .config import load_all
+            dd = os.environ.get("DATA_DIR", "data")
+            rows = evidence.archive_story(conn, sid, now, dd, load_all())
+            rel = evidence.bundle(conn, sid, now, dd)
+            ok = sum(1 for r in rows if r["http_status"] == 200)
+            wb = sum(1 for r in rows if r["wayback_url"])
+            full = sum(1 for r in rows if r["full_copy_path"])
+            return (f"Evidence bundle for {ed.uid(sid)} written to the PRIVATE data repo: {rel}\n"
+                    f"{ok}/{len(rows)} sources retrieved, {full} official full copies, {wb} archive.org captures. "
+                    f"Open it in github.com/<you>/postmortem-newsroom-data (private).")
         if cmd == "/approve":
             kind = parts[2] if len(parts) > 2 and parts[2] in ed.KINDS else None
             dest = parts[3] if len(parts) > 3 else "all"
@@ -76,7 +97,18 @@ def handle(conn, text: str, now) -> str:
             return f"Research requested for #{sid}; moved back to verifying."
         if cmd == "/published":
             r = ed.mark_published(conn, sid, now)
-            return f"Story #{sid} marked published." if r["ok"] else f"Cannot mark published: {r['error']}."
+            if not r["ok"]:
+                return f"Cannot mark published: {r['error']}."
+            from .config import load_all
+            rel = evidence.permanent_bundle(conn, sid, now, os.environ.get("DATA_DIR", "data"), load_all())
+            return f"Story #{sid} marked published. Permanent evidence bundle: {rel} (private repo). Tie it to the web page with /articleurl {sid} URL."
+        if cmd == "/articleurl":
+            r = ed.link_story(conn, sid, "article_url", parts[2], now)
+            if not r["ok"]:
+                return r["error"]
+            from .config import load_all
+            rel = evidence.permanent_bundle(conn, sid, now, os.environ.get("DATA_DIR", "data"), load_all())
+            return f"{ed.uid(sid)} linked to {parts[2]}. Permanent bundle updated: {rel}"
         if cmd == "/correct":
             r = ed.add_correction(conn, sid, " ".join(parts[2:]), now)
             return f"Correction #{r['id']} logged for {ed.uid(sid)}." if r["ok"] else r["error"]
@@ -118,5 +150,6 @@ def poll(conn, notifier, now) -> int:
         text = (m.get("text") or "").strip()
         if text.startswith("/"):
             notifier.send_raw(e(handle(conn, text, now)), now)
+            changelog.seal(conn)
             n += 1
     return n

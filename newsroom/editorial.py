@@ -13,6 +13,7 @@ import statistics
 import subprocess
 from datetime import timedelta
 
+from . import secondcheck
 from .util import iso, parse_iso
 from .verify import can_approve, refresh_status
 
@@ -94,6 +95,7 @@ def _sync_story_status(conn, sid: int):
     vers = latest_versions(conn, sid)
     allok = bool(vers) and all(_is_approved(conn, v) for v in vers)
     ok_claims, _ = can_approve(conn, sid)
+    ok_claims = ok_claims and secondcheck.gate(conn, sid)[0]
     if allok and ok_claims:
         new = "approved"
     elif s["editorial_status"] == "approved":
@@ -108,6 +110,9 @@ def approve(conn, sid: int, now, kind: str | None = None, destination: str = "al
     ok, out = can_approve(conn, sid)
     if not ok:
         return {"ok": False, "error": "verification incomplete", "outstanding": out}
+    ok2, why2 = secondcheck.gate(conn, sid)
+    if not ok2:
+        return {"ok": False, "error": why2}
     vers = latest_versions(conn, sid)
     if kind:
         vers = [v for v in vers if v["kind"] == kind]
@@ -150,6 +155,9 @@ def can_publish(conn, sid: int, destination: str | None = None) -> tuple[bool, s
     ok, out = can_approve(conn, sid)
     if not ok:
         return False, "verification incomplete"
+    ok2, why2 = secondcheck.gate(conn, sid)
+    if not ok2:
+        return False, why2
     vers = latest_versions(conn, sid)
     if not vers:
         return False, "no draft content has been saved and approved"
@@ -318,7 +326,7 @@ def link_story(conn, sid: int, kind: str, ref: str, now) -> dict:
     """kind: article | video | social:<platform> | newsletter. One article / one video per story: re-linking a different one is refused."""
     if not _story(conn, sid):
         return {"ok": False, "error": "no such story"}
-    if kind in ("article", "video"):
+    if kind in ("article", "video", "article_url"):
         ex = conn.execute("SELECT ref FROM story_links WHERE story_id=? AND kind=?", (sid, kind)).fetchone()
         if ex and ex["ref"] != ref:
             return {"ok": False, "error": f"story already has a {kind} ({ex['ref']}); refusing duplicate"}
@@ -423,6 +431,7 @@ APPLY = {
     "add_lead": lambda c, a, now: add_lead(c, now, a.pop("title"), a.pop("story_id", None), **a),
     "add_correction": lambda c, a, now: add_correction(c, int(a["story_id"]), a["text"], now, a.get("severity", "clarification")),
     "link_story": lambda c, a, now: link_story(c, int(a["story_id"]), a["kind"], a["ref"], now),
+    "second_check": lambda c, a, now: secondcheck.accept_submitted(c, int(a["story_id"]), a["items"], now, by=a.get("by", "claude-skill")),
     "live_update": lambda c, a, now: live_add_update(c, int(a["story_id"]), a["text"], now, a.get("source_url", ""), a.get("classification", "UNVERIFIED")),
 }
 
