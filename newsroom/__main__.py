@@ -103,7 +103,7 @@ def main(argv=None) -> int:
         print(json.dumps(res, default=str, indent=1))
         flat = {k: v for k, v in res.items() if isinstance(v, bool)}
         failed = [k for k, v in flat.items() if v is False]
-        n.send_once(f"selftest:{iso(now)}", "selftest", f"{'✅' if not failed else '❌'} <b>Selftest</b>: {len(flat) - len(failed)}/{len(flat)} checks passed." + (f" Failed: {', '.join(failed)}" if failed else ""), now)
+        n.send_once(f"selftest:{now.isoformat()}", "selftest", f"{'✅' if not failed else '❌'} <b>Selftest</b>: {len(flat) - len(failed)}/{len(flat)} checks passed." + (f" Failed: {', '.join(failed)}" if failed else ""), now)
     elif a.cmd == "acceptance":
         ok, rows = tools.acceptance(conn, cfg, now)
         for name, passed, detail in rows:
@@ -111,7 +111,7 @@ def main(argv=None) -> int:
         print("\nSYSTEM OPERATIONAL: " + ("YES" if ok else "NO - do not claim operational until every line passes"))
         from .notify import e as _e
         bad = [f"{_e(nm)} [{_e(dt)}]" for nm, passed, dt in rows if not passed]
-        n.send_once(f"acceptance:{iso(now)}", "acceptance", f"{'✅' if ok else '❌'} <b>Final acceptance</b>: {len(rows) - len(bad)}/{len(rows)} passed. "
+        n.send_once(f"acceptance:{now.isoformat()}", "acceptance", f"{'✅' if ok else '❌'} <b>Final acceptance</b>: {len(rows) - len(bad)}/{len(rows)} passed. "
                     + ("System operational." if ok else "NOT operational. Failing:\n" + "\n".join(bad)), now)
         return 0 if ok else 2
     elif a.cmd == "metrics":
