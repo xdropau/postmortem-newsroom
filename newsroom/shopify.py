@@ -129,3 +129,17 @@ def selftest(store: str, client_id: str, client_secret: str, session=None) -> di
     aid, published = r["article"]["id"], r["article"]["isPublished"]
     d = c.gql("mutation($id: ID!){ articleDelete(id: $id){ deletedArticleId userErrors{ message } } }", {"id": aid})["articleDelete"]
     return {"blog": blog["title"], "draft_created": True, "was_published": bool(published), "deleted_again": bool(d.get("deletedArticleId")), "errors": [e["message"] for e in d["userErrors"]]}
+
+
+def list_articles(store: str, client_id: str, client_secret: str, session=None) -> list[dict]:
+    """READ ONLY: every blog article with its status, tags and date."""
+    c = Client(store, get_token(store, client_id, client_secret, session), session)
+    out, cursor = [], None
+    while True:
+        d = c.gql("query($c:String){ articles(first: 100, after:$c) { nodes { title handle isPublished publishedAt tags blog { handle } } pageInfo { hasNextPage endCursor } } }", {"c": cursor})["articles"]
+        for a in d["nodes"]:
+            out.append({"title": a["title"], "blog": (a.get("blog") or {}).get("handle"), "handle": a["handle"], "published": bool(a["isPublished"]),
+                        "date": (a.get("publishedAt") or "")[:10], "pm_approved": "pm-approved" in (a.get("tags") or []), "tags": a.get("tags") or []})
+        if not d["pageInfo"]["hasNextPage"]:
+            return out
+        cursor = d["pageInfo"]["endCursor"]

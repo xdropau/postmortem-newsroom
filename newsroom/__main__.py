@@ -70,6 +70,15 @@ def main(argv=None) -> int:
         if not (store and cid and sec):
             print("Shopify settings missing: add SHOPIFY_STORE (variable), SHOPIFY_CLIENT_ID and SHOPIFY_CLIENT_SECRET (secrets).")
             return 3
+        if a.arg == "list":
+            try:
+                rows = shopify.list_articles(store, cid, sec)
+            except shopify.ShopifyError as ex:
+                print(f"STOPPED: {ex}")
+                return 3
+            for r in rows:
+                print("ARTICLE " + json.dumps(r, ensure_ascii=False))
+            return 0
         if a.arg == "selftest":
             try:
                 res = shopify.selftest(store, cid, sec)
