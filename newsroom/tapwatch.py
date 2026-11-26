@@ -104,6 +104,25 @@ def github_dispatch():
     return go
 
 
+HEARTBEATS = (("cycle.yml", 20), ("health.yml", 50))      # workflow, minutes after which a missing scheduled run is started by hand
+
+
+def heartbeat(now, request=None, start=None) -> list[str]:
+    """GitHub's free scheduler often skips runs. This always-on watcher starts the cycle / health workflow itself when one is overdue."""
+    from .util import parse_iso
+    started = []
+    for wf, limit in HEARTBEATS:
+        try:
+            runs = (request or (lambda w: gh("GET", f"actions/workflows/{w}/runs?per_page=1").json().get("workflow_runs", [])))(wf)
+            overdue = not runs or (runs[0]["status"] == "completed" and (now - parse_iso(runs[0]["created_at"])).total_seconds() > limit * 60)
+            if overdue:
+                (start or (lambda w: gh("POST", f"actions/workflows/{w}/dispatches", json={"ref": "main"})))(wf)
+                started.append(wf)
+        except Exception:  # noqa: BLE001 - never stop the watcher
+            continue
+    return started
+
+
 def main(minutes: float = 50, every: float = 2.0) -> int:
     token, chat = os.environ.get("TELEGRAM_BOT_TOKEN", ""), os.environ.get("TELEGRAM_CHAT_ID", "")
     if not (token and chat):
@@ -111,8 +130,12 @@ def main(minutes: float = 50, every: float = 2.0) -> int:
         return 0
     sess, seen, end, n = requests.Session(), set(), time.time() + minutes * 60, 0
     go = github_dispatch()
-    waiting = None
+    waiting, last_beat = None, 0.0
     while time.time() < end:
+        if time.time() - last_beat > 300:
+            last_beat = time.time()
+            from .util import utcnow
+            heartbeat(utcnow())
         got = step(sess, token, chat, seen, go)
         n += got
         if got:

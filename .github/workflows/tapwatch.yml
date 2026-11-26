@@ -29,3 +29,8 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - run: python -m newsroom.tapwatch
+      - name: Start the next watcher (so the chain does not depend on the cron)
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run tapwatch.yml --repo "$GITHUB_REPOSITORY" --ref main || true
