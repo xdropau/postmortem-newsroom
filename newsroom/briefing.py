@@ -30,3 +30,16 @@ def maybe_send(conn, cfg, notifier, now, force=False) -> str:
         return "not-due"
     key = f"briefing:{syd.date().isoformat()}"
     return notifier.send_once(key, "briefing", build(conn, cfg, now), now)
+
+
+def sent_today(conn, now) -> bool:
+    key = f"briefing:{now.astimezone(SYDNEY).date().isoformat()}"
+    return bool(conn.execute("SELECT 1 FROM notifications WHERE key=? AND ok=1", (key,)).fetchone())
+
+
+def catch_up(conn, cfg, notifier, now) -> str:
+    """Safety net, called from the health job: from 07:30 Sydney, send today's briefing if none has gone out."""
+    syd = now.astimezone(SYDNEY)
+    if (syd.hour, syd.minute) < (7, 30) or syd.hour >= 12 or sent_today(conn, now):
+        return "not-needed"
+    return maybe_send(conn, cfg, notifier, now)

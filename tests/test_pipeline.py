@@ -153,6 +153,21 @@ def test_health_alerts_are_deduplicated(conn, cfg, tg):
     assert health.run_health(conn, cfg, n, NOW + timedelta(hours=7))["alerts_sent"] == 2  # re-alerts after cooldown
 
 
+def test_briefing_catch_up_and_missing_alert(conn, cfg, tg):
+    n, t = tg
+    assert health.run_health(conn, cfg, n, NOW + timedelta(minutes=10))["briefing_catchup"] == "not-needed"   # 07:10: too early
+    r = health.run_health(conn, cfg, n, NOW + timedelta(minutes=40))                                          # 07:40: catch-up sends
+    assert r["briefing_catchup"] == "sent"
+    assert health.run_health(conn, cfg, n, NOW + timedelta(minutes=70))["briefing_catchup"] == "not-needed"   # once only
+
+
+def test_missing_briefing_alert_at_8am(conn, cfg):
+    t = FakeTelegram(fail_first=10_000)                       # Telegram down: catch-up cannot send
+    n = Notifier(conn, "T", "42", sleep=lambda s: None, session=t)
+    assert not any(i["kind"] == "briefing_missing" for i in health.check(conn, cfg, NOW + timedelta(minutes=40)))
+    assert any(i["kind"] == "briefing_missing" for i in health.check(conn, cfg, NOW + timedelta(hours=1, minutes=5)))
+
+
 # ---------- feed parsing ----------
 def test_parse_feed_filters_and_strips(cfg):
     xml = rss([{"title": "8-K - ACME (Item 5.02)", "url": "https://sec.gov/a", "pub": NOW, "desc": "<b>Item 5.02</b> departure"},

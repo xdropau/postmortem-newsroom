@@ -3,9 +3,10 @@ from __future__ import annotations
 
 from datetime import timedelta
 
+from .briefing import catch_up, sent_today
 from .cycle import record_run
 from .notify import e
-from .util import human_age, iso, parse_iso
+from .util import SYDNEY, human_age, iso, parse_iso
 
 
 def _bucket(now, hours):
@@ -45,6 +46,11 @@ def check(conn, cfg, now) -> list[dict]:
             issues.append({"kind": "no_new_info", "subject": "pipeline",
                            "text": f"No new stories for {gap:.1f}h although jobs report success. The system may have stopped processing new information."})
 
+    syd = now.astimezone(SYDNEY)
+    if syd.hour >= 8 and not sent_today(conn, now):
+        issues.append({"kind": "briefing_missing", "subject": syd.date().isoformat(),
+                       "text": f"No 7:00 AM briefing has been sent for {syd.strftime('%a %d %b')} (checked {syd.strftime('%H:%M')} Sydney). Run the 'briefing' workflow manually."})
+
     day = iso(now)[:10]
     lim = st["limits"]
     for svc, cap in (("telegram", lim["telegram_per_day"]), ("youtube_units", lim["youtube_units_per_day"]), ("llm", lim["llm_calls_per_day"])):
@@ -55,11 +61,13 @@ def check(conn, cfg, now) -> list[dict]:
 
 
 def run_health(conn, cfg, notifier, now) -> dict:
+    catchup = catch_up(conn, cfg, notifier, now)   # 07:30 safety net; runs before the 08:00 missing-briefing check
     issues = check(conn, cfg, now)
     sent = 0
     for i in issues:
-        key = f"ops:{i['kind']}:{i['subject']}:{_bucket(now, cfg['settings']['ops_alert_cooldown_hours'])}"
+        window = i["subject"] if i["kind"] == "briefing_missing" else _bucket(now, cfg["settings"]["ops_alert_cooldown_hours"])
+        key = f"ops:{i['kind']}:{i['subject']}:{window}"
         if notifier.send_once(key, "ops", f"⚠️ <b>OPS ALERT</b>\n{e(i['text'])}", now) == "sent":
             sent += 1
-    record_run(conn, "health", now, now, "ok", detail=f"issues={len(issues)} alerts_sent={sent}")
-    return {"issues": issues, "alerts_sent": sent}
+    record_run(conn, "health", now, now, "ok", detail=f"issues={len(issues)} alerts_sent={sent} briefing_catchup={catchup}")
+    return {"issues": issues, "alerts_sent": sent, "briefing_catchup": catchup}

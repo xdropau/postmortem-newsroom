@@ -1,10 +1,21 @@
 name: briefing
-# 07:00 Australia/Sydney consolidated overnight briefing. Two UTC slots cover daylight saving (AEDT=UTC+11, AEST=UTC+10);
-# the code sends once per Sydney day from 07:00 and ignores the second slot.
+# 07:00 Australia/Sydney consolidated overnight briefing. GitHub's free scheduler can skip or badly delay cron runs
+# (26 Nov 2026: the 20:00/21:00 UTC slots never started), so there are many backup slots. The code sends once per
+# Sydney day (send_once key briefing:<date>, window 07:00-12:00 Sydney) and treats every later slot as a no-op.
+# Further safety nets: health.yml (every 30 min) sends a catch-up from 07:30 Sydney and raises an ops alert at 08:00.
+# AEDT = UTC+11 (Oct-Apr): 20:00 UTC = 07:00.  AEST = UTC+10 (Apr-Oct): 21:00 UTC = 07:00.
 on:
   schedule:
     - cron: "0 20 * * *"
     - cron: "0 21 * * *"
+    - cron: "17 20 * * *"
+    - cron: "34 20 * * *"
+    - cron: "52 20 * * *"
+    - cron: "12 21 * * *"
+    - cron: "37 21 * * *"
+    - cron: "5 22 * * *"
+    - cron: "40 22 * * *"
+    - cron: "20 23 * * *"
   workflow_dispatch:
 concurrency:
   group: newsroom-data
