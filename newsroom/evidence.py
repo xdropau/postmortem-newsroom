@@ -61,13 +61,15 @@ def wayback(url: str, get=requests.get, allow_save: bool = True) -> tuple[str, s
         return "", f"save failed: {type(ex).__name__}"
 
 
-def archive_story(conn, sid: int, now, data_dir: str, cfg, get=http_get, wb=wayback, max_docs: int = 4, max_wayback: int = 2) -> list[dict]:
+def archive_story(conn, sid: int, now, data_dir: str, cfg, get=http_get, wb=wayback, max_docs: int = 4, max_wayback: int = 2, urls_override=None) -> list[dict]:
     s = dict(conn.execute("SELECT * FROM stories WHERE id=?", (sid,)).fetchone())
     items = {r["url"]: dict(r) for r in conn.execute("SELECT url, org, published_at FROM items WHERE story_id=? ORDER BY id", (sid,))}
     urls = []
     for u in [s["primary_url"], s["original_url"]] + list(items):
         if u and u not in urls:
             urls.append(u)
+    if urls_override:
+        urls = list(urls_override)
     out, wb_used = [], 0
     for u in urls[:max_docs]:
         official = is_primary_domain(u, cfg)
@@ -90,7 +92,7 @@ def archive_story(conn, sid: int, now, data_dir: str, cfg, get=http_get, wb=wayb
                 row["full_copy_path"] = rel
         except Exception as ex:  # noqa: BLE001 - failures are recorded, never hidden
             row.update(http_status=getattr(ex, "status", None), error=f"{type(ex).__name__}: {ex}"[:200])
-        key_source = u == s["primary_url"] or official or u == s["original_url"]
+        key_source = u == s["primary_url"] or official or u == s["original_url"] or bool(urls_override)
         if key_source and row["http_status"] == 200 and wb_used < max_wayback:
             row["wayback_url"], row["wayback_status"] = wb(u)
             wb_used += 1

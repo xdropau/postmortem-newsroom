@@ -1,0 +1,42 @@
+name: taps
+# Handles Telegram button taps (Approve, Needs more checking, Reject, BREAKING, LIVE, Undo) and publishes the approved-only website feed.
+# Runs every 5 minutes; the cycle also handles taps, so a tap is acted on within about 5 minutes either way.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+    - cron: "2,17,32,47 * * * *"
+  workflow_dispatch:
+concurrency:
+  group: newsroom-data
+  cancel-in-progress: false
+permissions:
+  contents: write   # only to push the approved-only feed to the public site-data branch
+jobs:
+  taps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      DATA_DIR: data
+      DATA_REPO: ${{ vars.DATA_REPO }}
+      DATA_DEPLOY_KEY: ${{ secrets.DATA_DEPLOY_KEY }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: bash scripts/data_pull.sh
+      - name: Handle button taps
+        run: python -m newsroom commands
+      - name: Publish approved feed
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/publish_site.sh
+      - name: Save data
+        if: always()
+        run: bash scripts/data_push.sh

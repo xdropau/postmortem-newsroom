@@ -13,7 +13,7 @@ import statistics
 import subprocess
 from datetime import timedelta
 
-from . import secondcheck
+from . import linkcheck, secondcheck
 from .util import iso, parse_iso
 from .verify import can_approve, refresh_status
 
@@ -95,7 +95,7 @@ def _sync_story_status(conn, sid: int):
     vers = latest_versions(conn, sid)
     allok = bool(vers) and all(_is_approved(conn, v) for v in vers)
     ok_claims, _ = can_approve(conn, sid)
-    ok_claims = ok_claims and secondcheck.gate(conn, sid)[0]
+    ok_claims = ok_claims and secondcheck.gate(conn, sid)[0] and linkcheck.gate(conn, sid)[0]
     if allok and ok_claims:
         new = "approved"
     elif s["editorial_status"] == "approved":
@@ -113,6 +113,9 @@ def approve(conn, sid: int, now, kind: str | None = None, destination: str = "al
     ok2, why2 = secondcheck.gate(conn, sid)
     if not ok2:
         return {"ok": False, "error": why2}
+    ok3, why3 = linkcheck.gate(conn, sid, now)
+    if not ok3:
+        return {"ok": False, "error": "links not verified: " + why3}
     vers = latest_versions(conn, sid)
     if kind:
         vers = [v for v in vers if v["kind"] == kind]
@@ -158,6 +161,9 @@ def can_publish(conn, sid: int, destination: str | None = None) -> tuple[bool, s
     ok2, why2 = secondcheck.gate(conn, sid)
     if not ok2:
         return False, why2
+    ok3, why3 = linkcheck.gate(conn, sid)
+    if not ok3:
+        return False, "links not verified: " + why3
     vers = latest_versions(conn, sid)
     if not vers:
         return False, "no draft content has been saved and approved"

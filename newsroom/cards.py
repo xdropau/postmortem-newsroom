@@ -67,14 +67,18 @@ def card(conn, s, now) -> dict:
     outlets = {i["org"] for i in items}
     ref = parse_iso(s["published_at"]) if s.get("published_at") else None
     age = f"published {human_age((now - ref).total_seconds())} ago" if ref else f"detected {human_age((now - parse_iso(s['detected_at'])).total_seconds())} ago (no publish time)"
+    from . import review
+    cl = review.checklist(conn, s["id"])
     return {
+        "checks": cl["flags"], "checks_missing": "; ".join(cl["missing"]), "can_approve": cl["all_ok"],
+        "breaking": bool(s.get("breaking")) and bool(s.get("breaking_until")) and parse_iso(s["breaking_until"]) > now,
         "id": s["id"], "uid": ed.uid(s["id"]), "headline": _clean(s["headline"], 160), "summary": summary_of(conn, s["id"], s["headline"]),
         "why": why_it_matters(s, sj, len(outlets)), "age": age, "age_min": int(((now - (ref or parse_iso(s["detected_at"]))).total_seconds()) // 60),
         "score": s["score"], "category": s["category"] or "General", "link": s["primary_url"] or s["original_url"] or "",
         "is_primary": bool(s["primary_url"]), "source": s["source_org"] or "",
         "verification": STATUS_WORDS.get(s["verification_status"], s["verification_status"]), "status": s["editorial_status"],
         "status_word": EDITORIAL_WORDS.get(s["editorial_status"], s["editorial_status"]),
-        "hook": make_hooks(s["headline"], items[0]["summary"] if items else "")[0],
+        "hook": make_hooks(s["headline"], (items[0]["summary"] or "") if items else "")[0],
         "cmd_open": f"/story {s['id']}", "cmd_approve": f"/approve {s['id']}", "cmd_reject": f"/reject {s['id']}",
         "blocked": conn.execute("SELECT COUNT(*) c FROM claims WHERE story_id=? AND status='UNVERIFIED'", (s["id"],)).fetchone()["c"],
         "alert": s["score"] >= 80 and bool(s["evidence_ok"]),

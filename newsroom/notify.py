@@ -47,25 +47,40 @@ class Notifier:
             self.sleep(2 * (2 ** attempt))
         return {"ok": False, "error": str(last)}
 
-    def send_raw(self, text: str, now) -> bool:
+    def send_raw(self, text: str, now, markup: dict | None = None) -> bool:
         if not self.configured:
             return False
         ok = True
         chunks = [text[i:i + 3900] for i in range(0, len(text), 3900)] or [""]
-        for ch in chunks:
-            res = self._call("sendMessage", {"chat_id": self.chat_id, "text": ch, "parse_mode": "HTML",
-                                             "disable_web_page_preview": True})
+        for n, ch in enumerate(chunks):
+            payload = {"chat_id": self.chat_id, "text": ch, "parse_mode": "HTML", "disable_web_page_preview": True}
+            if markup and n == len(chunks) - 1:      # buttons go on the last (or only) part
+                payload["reply_markup"] = markup
+            res = self._call("sendMessage", payload)
             bump_usage(self.conn, "telegram", 1, iso(now)[:10])
             ok = ok and bool(res.get("ok"))
         return ok
 
-    def send_once(self, key: str, kind: str, text: str, now, story_id=None) -> str:
+    def edit(self, message_id, text: str, markup: dict | None, now) -> bool:
+        """Replace a card in place (used after a button tap). Falls back to a new message if Telegram will not edit it."""
+        payload = {"chat_id": self.chat_id, "message_id": message_id, "text": text[:3900], "parse_mode": "HTML",
+                   "disable_web_page_preview": True, "reply_markup": markup or {"inline_keyboard": []}}
+        res = self._call("editMessageText", payload, retries=1)
+        if res.get("ok") or "not modified" in str(res).lower():
+            return True
+        return self.send_raw(text, now, markup)
+
+    def answer(self, callback_id: str, text: str = "") -> None:
+        """Stop the button's spinner. Telegram rejects late answers; that is harmless."""
+        self._call("answerCallbackQuery", {"callback_query_id": callback_id, "text": text[:190]}, retries=0)
+
+    def send_once(self, key: str, kind: str, text: str, now, story_id=None, markup: dict | None = None) -> str:
         """Returns 'sent', 'duplicate', 'failed' or 'unconfigured'. A failed send is not recorded, so it retries next cycle."""
         if self.conn.execute("SELECT 1 FROM notifications WHERE key=? AND ok=1", (key,)).fetchone():
             return "duplicate"
         if not self.configured:
             return "unconfigured"
-        ok = self.send_raw(text, now)
+        ok = self.send_raw(text, now, markup)
         if ok:
             self.conn.execute("INSERT OR REPLACE INTO notifications(key,kind,story_id,sent_at,ok,payload) VALUES(?,?,?,?,?,?)",
                               (key, kind, story_id, iso(now), 1, text[:2000]))

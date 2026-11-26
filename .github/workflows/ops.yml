@@ -1,5 +1,5 @@
 name: ops
-# Manual tools: feed audit, live self-test, acceptance report, forced briefing.
+# Manual tools: feed audit, live self-test, acceptance report, forced briefing, Telegram test card, weekly link check.
 on:
   workflow_dispatch:
     inputs:
@@ -7,7 +7,7 @@ on:
         description: "What to run"
         type: choice
         required: true
-        options: [audit, selftest, acceptance, briefing-force]
+        options: [audit, selftest, acceptance, briefing-force, testcard, linkwatch]
 concurrency:
   group: newsroom-data
   cancel-in-progress: false
@@ -40,6 +40,8 @@ jobs:
             selftest) python -m newsroom selftest ;;
             acceptance) python -m newsroom acceptance | tee "$GITHUB_STEP_SUMMARY" ;;
             briefing-force) python -m newsroom briefing --force ;;
+            testcard) python -m newsroom testcard ;;
+            linkwatch) python -m newsroom linkwatch ;;
           esac
       - name: Save data
         if: always()

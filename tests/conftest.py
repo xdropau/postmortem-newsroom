@@ -55,8 +55,15 @@ class FakeWeb:
 class FakeTelegram:
     def __init__(self, fail_first=0):
         self.sent, self.fail_first, self.updates = [], fail_first, []
+        self.markups, self.edits, self.answers = [], [], []
 
     def post(self, url, json=None, timeout=None):
+        if "editMessageText" in url:
+            self.edits.append(json)
+            return Resp(b'{"ok": true}')
+        if "answerCallbackQuery" in url:
+            self.answers.append(json)
+            return Resp(b'{"ok": true}')
         if "getUpdates" in url:
             ups, self.updates = self.updates, []
             return Resp(__import__("json").dumps({"ok": True, "result": ups}).encode())
@@ -64,6 +71,7 @@ class FakeTelegram:
             self.fail_first -= 1
             return Resp(b"{}", 400)
         self.sent.append(json["text"])
+        self.markups.append(json.get("reply_markup"))
         return Resp(b'{"ok": true}')
 
 

@@ -1,0 +1,36 @@
+name: linkwatch
+# Weekly: re-open every cited link on approved/published stories. A broken link or a changed source page sends a Telegram alert
+# naming the story and the link, plus a one-line weekly summary.
+on:
+  schedule:
+    - cron: "30 21 * * 0"   # Monday 08:30 Sydney (AEDT)
+    - cron: "30 22 * * 0"   # backup slot (GitHub can skip scheduled runs); the weekly summary de-duplicates
+  workflow_dispatch:
+concurrency:
+  group: newsroom-data
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  linkwatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATA_DIR: data
+      DATA_REPO: ${{ vars.DATA_REPO }}
+      DATA_DEPLOY_KEY: ${{ secrets.DATA_DEPLOY_KEY }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: bash scripts/data_pull.sh
+      - run: python -m newsroom linkwatch
+      - name: Save data
+        if: always()
+        run: bash scripts/data_push.sh

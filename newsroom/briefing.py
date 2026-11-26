@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from .cards import pipeline_counts, top_stories
+from .review import CHECKS, briefing_keyboard
 from .notify import e
 from .util import SYDNEY
 
@@ -16,7 +17,7 @@ def build(conn, cfg, now) -> str:
               f"   Score {c['score']} · {e(c['category'])} · {e(c['age'])}",
               f"   {e(c['verification'])}" + (" · official source" if c["is_primary"] else ""),
               f"   {e(c['link'])}",
-              f"   Open: {c['cmd_open']}", ""]
+              f"   Checks: {''.join('✅' if c['checks'][k] else '❌' for k, _ in CHECKS)} ({sum(c['checks'].values())}/5) · tap Review {i} below", ""]
     if not top:
         L += ["Nothing new in the last 24 hours.", ""]
     p = pipeline_counts(conn)
@@ -29,7 +30,8 @@ def maybe_send(conn, cfg, notifier, now, force=False) -> str:
     if not force and not (cfg["settings"]["briefing_hour_sydney"] <= syd.hour < 12):
         return "not-due"
     key = f"briefing:{syd.date().isoformat()}"
-    return notifier.send_once(key, "briefing", build(conn, cfg, now), now)
+    ids = [c["id"] for c in top_stories(conn, now)]
+    return notifier.send_once(key, "briefing", build(conn, cfg, now), now, markup=briefing_keyboard(conn, ids))
 
 
 def sent_today(conn, now) -> bool:

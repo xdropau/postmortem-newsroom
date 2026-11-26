@@ -116,6 +116,14 @@ CREATE TABLE IF NOT EXISTS evidence_archive(
   UNIQUE(story_id, url, sha256)
 );
 
+CREATE TABLE IF NOT EXISTS link_runs(
+  id INTEGER PRIMARY KEY AUTOINCREMENT, story_id INTEGER NOT NULL, at TEXT NOT NULL, kind TEXT NOT NULL, ok INTEGER NOT NULL, claims_sig TEXT
+);
+CREATE INDEX IF NOT EXISTS ix_link_runs ON link_runs(story_id, kind, id);
+CREATE TABLE IF NOT EXISTS link_checks(
+  id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER NOT NULL, story_id INTEGER NOT NULL, claim_id INTEGER, url TEXT,
+  ok INTEGER NOT NULL, http_status TEXT, text_found INTEGER, archived INTEGER, reason TEXT
+);
 CREATE TABLE IF NOT EXISTS change_log(
   id INTEGER PRIMARY KEY AUTOINCREMENT, at TEXT NOT NULL, story_id INTEGER, kind TEXT NOT NULL, ref TEXT, detail TEXT,
   prev_hash TEXT, row_hash TEXT
@@ -157,6 +165,10 @@ CREATE TRIGGER IF NOT EXISTS lg_status AFTER UPDATE OF editorial_status,publicat
   INSERT INTO change_log(at,story_id,kind,ref,detail) VALUES(strftime('%Y-%m-%dT%H:%M:%SZ','now'),NEW.id,
     CASE WHEN NEW.publication_status<>IFNULL(OLD.publication_status,'') THEN 'publication_record' ELSE 'editorial_status' END,'story',
     'editorial '||IFNULL(OLD.editorial_status,'')||' -> '||NEW.editorial_status||'; publication '||IFNULL(OLD.publication_status,'')||' -> '||NEW.publication_status); END;
+CREATE TRIGGER IF NOT EXISTS lg_links AFTER INSERT ON link_runs BEGIN
+  INSERT INTO change_log(at,story_id,kind,ref,detail) VALUES(strftime('%Y-%m-%dT%H:%M:%SZ','now'),NEW.story_id,'link_check_run','run '||NEW.id,NEW.kind||': '||CASE NEW.ok WHEN 1 THEN 'PASS' ELSE 'FAIL' END); END;
+CREATE TRIGGER IF NOT EXISTS lk_no_delete BEFORE DELETE ON link_runs BEGIN SELECT RAISE(ABORT,'link checks are append-only'); END;
+CREATE TRIGGER IF NOT EXISTS lkc_no_delete BEFORE DELETE ON link_checks BEGIN SELECT RAISE(ABORT,'link checks are append-only'); END;
 CREATE TRIGGER IF NOT EXISTS lg_second AFTER INSERT ON second_checks BEGIN
   INSERT INTO change_log(at,story_id,kind,ref,detail) VALUES(strftime('%Y-%m-%dT%H:%M:%SZ','now'),NEW.story_id,'second_check_run','run '||NEW.id,'by '||IFNULL(NEW.by,'')||'; pages read '||NEW.docs_read); END;
 CREATE TRIGGER IF NOT EXISTS lg_second_resolve AFTER UPDATE OF resolved_result ON second_check_items WHEN NEW.resolved_result IS NOT NULL BEGIN
@@ -193,12 +205,19 @@ STORY_COLUMNS = {"breaking": "INTEGER DEFAULT 0", "breaking_until": "TEXT", "art
                  "social_refs": "TEXT", "format": "TEXT DEFAULT 'story'"}
 
 
+CLAIM_COLUMNS = {"cite_text": "TEXT", "link_override": "TEXT"}
+
+
 def migrate(conn):
     """Add columns to databases created before the editorial layer existed. Safe to run every time."""
     have = {r["name"] for r in conn.execute("PRAGMA table_info(stories)")}
     for col, decl in STORY_COLUMNS.items():
         if col not in have:
             conn.execute(f"ALTER TABLE stories ADD COLUMN {col} {decl}")
+    have = {r["name"] for r in conn.execute("PRAGMA table_info(claims)")}
+    for col, decl in CLAIM_COLUMNS.items():
+        if col not in have:
+            conn.execute(f"ALTER TABLE claims ADD COLUMN {col} {decl}")
     conn.commit()
 
 

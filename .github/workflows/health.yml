@@ -38,6 +38,12 @@ jobs:
           git config user.name "newsroom-bot" && git config user.email "newsroom-bot@users.noreply.github.com"
           git add -A && git commit -q -m "dashboard $(date -u +%FT%TZ)"
           git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages
+      - name: Publish approved feed
+        if: always()
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/publish_site.sh
       - name: Save data
         if: always()
         run: bash scripts/data_push.sh

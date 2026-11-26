@@ -5,6 +5,7 @@ import pytest
 
 from conftest import NOW
 from newsroom import editorial as ed
+from newsroom import linkcheck as lc
 from newsroom import secondcheck as sc
 from newsroom.db import connect
 
@@ -19,6 +20,7 @@ def db(tmp_path):
               "VALUES(1,'sec','SEC','primary','primary','Charges','https://sec.gov/a','https://sec.gov/a','2026-11-24T19:00:00Z',1,'2026-11-24T19:10:00Z')")
     c.commit()
     sc.store(c, 1, [sc._item("headline", "h", "PASS", "x")], NOW)   # a passing second check
+    lc.store_pass(c, 1, NOW)
     return c
 
 

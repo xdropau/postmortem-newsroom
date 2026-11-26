@@ -5,7 +5,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
-from . import changelog, editorial
+from . import changelog, editorial, review
 from .config import sources_for
 from .db import bump_usage
 from .fetch import FetchError, http_get, parse_feed
@@ -115,11 +115,13 @@ def send_alerts(conn, notifier, cfg, now, get=http_get) -> list[int]:
         if not conn.execute("SELECT 1 FROM source_checks WHERE story_id=?", (sid,)).fetchone():
             open_sources(conn, sid, now, get=get)
         refresh_status(conn, sid)
+        review.auto_checks(conn, sid, now, os.environ.get("DATA_DIR", "data"), cfg, get, light=True)
         build_package(conn, sid, os.environ.get("DATA_DIR", "data"), now)
         s = dict(conn.execute("SELECT * FROM stories WHERE id=?", (sid,)).fetchone())
         items = [dict(x) for x in conn.execute("SELECT * FROM items WHERE story_id=? ORDER BY id", (sid,))]
         text = format_alert(s, items, outstanding(conn, sid), make_hooks(s["headline"], items[0]["summary"] or "")[0], now)
-        res = notifier.send_once(f"alert:{sid}", "alert", text, now, story_id=sid)
+        text += "\n\n" + review.checklist_text(review.checklist(conn, sid))
+        res = notifier.send_once(f"alert:{sid}", "alert", text, now, story_id=sid, markup=review.keyboard(conn, sid))
         if res == "sent":
             sent.append(sid)
     return sent
@@ -139,6 +141,7 @@ def run_cycle(conn, cfg, notifier, now, get=http_get, data_dir="data") -> dict:
         out["inbox_applied"] = editorial.process_inbox(conn, data_dir, now)
         out["breaking_expired"] = editorial.expire_breaking(conn, now)
         out["live_drafts"] = editorial.discover_live_updates(conn, now)
+        out["live_cards"] = review.send_live_update_cards(conn, notifier, now)
     except Exception as ex:  # noqa: BLE001
         record_run(conn, "editorial", now, now, "error", detail=f"{type(ex).__name__}: {ex}")
     changelog.seal(conn)

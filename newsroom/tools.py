@@ -12,7 +12,7 @@ from .db import kv_get, kv_set
 from .fetch import FetchError, http_get, parse_feed
 from .ingest import ingest, rescore_recent
 from .notify import e
-from . import changelog, editorial as ed, secondcheck as sc
+from . import changelog, editorial as ed, linkcheck as lc, secondcheck as sc
 from .package import build_package
 from .util import human_age, iso, parse_iso
 from .verify import seed_claims, open_sources
@@ -139,6 +139,11 @@ def editorial_selftest(now) -> tuple[bool, list[str]]:
         sc.store(c, 1, [sc._item("figures", "f", "UNCLEAR", "x")], now)
         chk("approval refused while a material second-check item is UNCLEAR", "second check UNCLEAR" in ed.approve(c, 1, now).get("error", ""))
         sc.store(c, 1, [sc._item("figures", "f", "PASS", "x")], now)
+        chk("approval refused while a fact has no source link", "no source link" in ed.approve(c, 1, now).get("error", ""))
+        c.execute("UPDATE claims SET source_url='https://example.org/doc'")
+        c.commit()
+        chk("approval refused until the links are verified", "links not verified" in ed.approve(c, 1, now).get("error", ""))
+        lc.store_pass(c, 1, now, "selftest")
         chk("approval recorded against version 1", ed.approve(c, 1, now)["ok"] and ed.can_publish(c, 1)[0])
         r = ed.save_version(c, 1, "article", "v1 text with a changed figure", now)
         chk("material edit voids the approval", r["invalidated"] == 1 and not ed.can_publish(c, 1)[0])

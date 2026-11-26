@@ -87,15 +87,29 @@ code{font:13px ui-monospace,Consolas,monospace;background:var(--paper);border:1p
 details{margin-top:26px;border-top:2px solid var(--ink);padding-top:8px}summary{font:600 14px system-ui;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;padding:6px 0}
 nav button{margin:2px 3px 2px 0}table{border-collapse:collapse;width:100%;font:13px system-ui;background:#fff}td,th{border-bottom:1px solid #e3ddd0;padding:6px;text-align:left;vertical-align:top}
 a{color:var(--ink)}.bad{color:var(--red)}small{color:#666}
+.how{background:#fff;border:1px solid var(--ink);padding:6px 18px 12px;margin:10px 0}.how h2{border:0;margin:10px 0 4px}.how ol{margin:0;padding-left:20px;font:15px/1.5 system-ui}
+.ticks{font:13px system-ui;margin:6px 0 0}.ticks span{margin-right:10px;white-space:nowrap}.miss{font:13px system-ui;color:var(--red);margin:4px 0 0}
+.card.brk{border-left-color:#000;background:#fff6f6}.card.live{border-left-color:#222}
 </style></head><body>
 <header><h1>THE POST-MORTEM <small>Newsroom review desk. Nothing here publishes anything.</small></h1></header>
 <main><div id="lock"><p>Enter dashboard password</p><input id="pw" type="password" autocomplete="current-password"> <button id="go">Unlock</button><p id="err" class="bad"></p></div>
 <div id="app" hidden><p><small id="meta"></small></p>
+<section class="how" aria-labelledby="howh"><h2 id="howh">How this works</h2><ol>
+<li>The robot reads news feeds all day and gives every story a score.</li>
+<li>The best stories wait in <b>To review</b> below, and arrive as cards in Telegram.</li>
+<li>Each card has five yes/no checks. <b>Approve</b> only works when all five are yes.</li>
+<li>Tap <b>Approve</b> in Telegram: the story and its sources reach the website in about 5 minutes. You can undo for 10 minutes.</li>
+<li><b>Breaking</b> shows a red banner on the site. <b>Live</b> shows updates you approve one by one. Nothing goes out without your tap.</li></ol></section>
+<h2>Today <small>one screen: what needs you, what is breaking, what is live</small></h2>
+<div class="cols" id="today"><section><h2>To review</h2><div id="tdReview"></div></section>
+<section><h2>Breaking</h2><div id="tdBreaking"></div></section>
+<section><h2>Live</h2><div id="tdLive"></div></section></div>
+<details id="full"><summary>Full list (top 5, filters, all stages)</summary>
 <h2>Top 5 today <small>highest score in the last 24 hours</small></h2><div id="top5"></div>
 <div class="filters" id="filters"></div>
 <div class="cols"><section><h2>New and worth a look</h2><div id="colNew"></div></section>
 <section><h2>Needs your review</h2><div id="colReview"></div></section>
-<section><h2>Ready to approve</h2><div id="colReady"></div></section></div>
+<section><h2>Ready to approve</h2><div id="colReady"></div></section></div></details>
 <details id="more"><summary>More</summary><nav id="tabs"></nav><div id="view"></div></details></div></main>
 <script>
 const B64="__BLOB__",ITER=__ITER__;
@@ -121,7 +135,20 @@ d.appendChild(cmds([c.cmd_open,c.cmd_second,c.cmd_approve]));return d}
 function smallCard(c,next){const d=el('article','card small');const h=el('div','ch');h.appendChild(el('span','score',c.score));const a=link(c.link,c.headline);a.className='hl';h.appendChild(a);d.appendChild(h);
 d.appendChild(el('p','meta',c.age+' | '+c.category));d.appendChild(pills(c));d.appendChild(cmds(next));return d}
 function fill(id,list,mk){const box=$(id);box.replaceChildren();if(!list.length){box.appendChild(el('p','empty','Nothing here right now.'));return}list.slice(0,12).forEach(c=>box.appendChild(mk(c)))}
-function renderHome(D){const byId={};D.cards.forEach(c=>byId[c.id]=c);const F=$('filters');
+function ticks(c){const p=el('p','ticks');const L={sources:'Sources',facts:'Facts',dates:'Dates',second:'2nd check',links:'Links'};
+Object.keys(L).forEach(k=>p.appendChild(el('span',null,(c.checks[k]?'\\u2705 ':'\\u274C ')+L[k])));return p}
+function todayCard(c,cls){const d=el('article','card small '+(cls||''));const h=el('div','ch');h.appendChild(el('span','score',c.score));const a=link(c.link,c.headline);a.className='hl';h.appendChild(a);d.appendChild(h);
+d.appendChild(el('p','meta',c.uid+' | '+c.age+' | '+c.category));d.appendChild(ticks(c));
+d.appendChild(el('p',c.can_approve?'meta':'miss',c.can_approve?'All five checks are yes. Tap Approve in Telegram.':'Missing: '+c.checks_missing));return d}
+function renderToday(D){const open=D.cards.filter(c=>['new','verifying','ready'].includes(c.status)&&c.score>=45);
+fill('tdReview',open.sort((a,b)=>(b.can_approve-a.can_approve)||b.score-a.score),c=>todayCard(c));
+fill('tdBreaking',D.cards.filter(c=>c.breaking),c=>todayCard(c,'brk'));
+const live=D.editorial.live.filter(l=>l.state!=='CONCLUDED'),box=$('tdLive');box.replaceChildren();
+if(!live.length)box.appendChild(el('p','empty','Nothing here right now.'));
+live.forEach(l=>{const ups=D.editorial.live_updates.filter(u=>u.coverage_id===l.id);const ok=ups.filter(u=>u.status==='approved'&&u.approved_hash===u.content_hash).length;const dr=ups.filter(u=>u.status==='draft').length;
+const d=el('article','card small live');d.appendChild(el('span','hl',l.title));d.appendChild(el('p','meta',l.story_id+' | '+l.state));
+d.appendChild(el('p','meta',ok+' update(s) approved and public | '+dr+' waiting for your tap in Telegram'));box.appendChild(d)})}
+function renderHome(D){renderToday(D);const byId={};D.cards.forEach(c=>byId[c.id]=c);const F=$('filters');
 const cats=[...new Set(D.cards.map(c=>c.category))].sort();
 function sel(label,opts){const l=el('label',null,label+' ');const s=el('select');opts.forEach(o=>{const x=el('option',null,o[1]);x.value=o[0];s.appendChild(x)});s.onchange=draw;l.appendChild(s);F.appendChild(l);return s}
 const fc=sel('Category',[['','All'],...cats.map(x=>[x,x])]),fs=sel('Score',[['0','Any'],['40','40+'],['60','60+'],['80','80+ (alerts)']]),

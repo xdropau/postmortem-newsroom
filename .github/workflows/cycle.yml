@@ -8,7 +8,7 @@ concurrency:
   group: newsroom-data
   cancel-in-progress: false
 permissions:
-  contents: read
+  contents: write   # only to push the approved-only feed to the public site-data branch
 jobs:
   cycle:
     runs-on: ubuntu-latest
@@ -31,6 +31,12 @@ jobs:
       - run: bash scripts/data_pull.sh
       - name: Run cycle
         run: python -m newsroom cycle
+      - name: Publish approved feed
+        if: always()
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/publish_site.sh
       - name: Save data
         if: always()
         run: bash scripts/data_push.sh

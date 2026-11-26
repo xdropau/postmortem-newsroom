@@ -46,7 +46,7 @@ def main(argv=None) -> int:
     except Exception:  # noqa: BLE001
         pass
     p = argparse.ArgumentParser(prog="newsroom")
-    p.add_argument("cmd", choices=["cycle", "briefing", "health", "dashboard", "audit", "selftest", "acceptance", "package", "draft", "prune", "commands", "submit", "metrics", "export-evidence", "check-narration", "lead", "secondcheck", "evidence", "verify-log", "backup", "restore-test", "restore", "export-backup", "backup-retention"])
+    p.add_argument("cmd", choices=["cycle", "briefing", "health", "dashboard", "audit", "selftest", "acceptance", "package", "draft", "prune", "commands", "submit", "metrics", "export-evidence", "check-narration", "lead", "secondcheck", "evidence", "verify-log", "backup", "restore-test", "restore", "export-backup", "backup-retention", "site-export", "testcard", "linkwatch"])
     p.add_argument("arg", nargs="?")
     p.add_argument("--force", action="store_true")
     p.add_argument("--out", default="dashboard_out")
@@ -64,6 +64,20 @@ def main(argv=None) -> int:
         out["commands_handled"] = commands.poll(conn, n, now)
         print(json.dumps(out, default=str))
         return 0 if any(b["status"] != "error" for b in out["bots"]) else 1
+    if a.cmd == "testcard":
+        from . import review
+        print(review.send_test_card(conn, n, now))
+        return 0
+    if a.cmd == "linkwatch":
+        from . import linkcheck
+        print(json.dumps(linkcheck.weekly(conn, n, now, data_dir)))
+        return 0
+    if a.cmd == "site-export":
+        # Writes ONLY approved material to <out>/pm-newsroom.json for the website theme. It never publishes anything.
+        from . import siteexport
+        out = a.out if a.out != "dashboard_out" else "site_export"
+        print(json.dumps(siteexport.write(conn, now, os.path.join(out, "pm-newsroom.json"))))
+        return 0
     if a.cmd == "commands":
         print(commands.poll(conn, n, now))
     elif a.cmd == "briefing":

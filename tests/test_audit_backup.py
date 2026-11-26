@@ -8,7 +8,7 @@ from datetime import date, timedelta
 import pytest
 
 from conftest import NOW, FakeWeb, Resp
-from newsroom import backup, changelog, evidence, secondcheck as sc
+from newsroom import backup, changelog, evidence, linkcheck as lc, secondcheck as sc
 from newsroom import editorial as ed
 from newsroom.config import load_all
 from newsroom.db import connect
@@ -29,7 +29,7 @@ def db(tmp_path):
               "VALUES(1,'sec','SEC','primary','primary','t',?,?,'2026-11-24T10:00:00Z',1,'2026-11-24T10:05:00Z','The SEC charged Acme and John Smith over $1.2 billion')", (URL, URL))
     c.execute("INSERT INTO items(story_id,source_id,org,bot,tier,title,url,canonical_url,published_at,pub_known,detected_at,summary) "
               "VALUES(1,'n','Example News','radar','outlet','t',?,?,'2026-11-24T11:00:00Z',1,'2026-11-24T11:05:00Z','x')", (THIRD, THIRD))
-    c.execute("INSERT INTO claims(story_id,claim_type,claim_text,status) VALUES(1,'source','Source opens','VERIFIED')")
+    c.execute("INSERT INTO claims(story_id,claim_type,claim_text,status,source_url) VALUES(1,'source','Source opens','VERIFIED','https://sec.gov/a')")
     c.commit()
     return c
 
@@ -111,6 +111,7 @@ def test_submitted_claude_results_with_invented_evidence_are_downgraded(db):
 def test_changelog_records_chains_and_detects_tampering(db):
     ed.save_version(db, 1, "article", "v1", NOW)
     sc.store(db, 1, [sc._item("headline", "h", "PASS", "x")], NOW)
+    lc.store_pass(db, 1, NOW)
     ed.approve(db, 1, NOW)
     db.execute("UPDATE claims SET status='DISPUTED'")
     db.commit()
@@ -144,6 +145,7 @@ def test_stories_with_editorial_history_cannot_be_deleted(db):
     db.execute("DELETE FROM claims WHERE story_id=2")
     db.execute("DELETE FROM stories WHERE id=2")                       # unreviewed low-score junk may go
     sc.store(db, 1, [sc._item("headline", "h", "PASS", "x")], NOW)
+    lc.store_pass(db, 1, NOW)
     ed.save_version(db, 1, "article", "v1", NOW)
     ed.approve(db, 1, NOW)
     for q in ("DELETE FROM stories WHERE id=1", "DELETE FROM claims WHERE story_id=1", "DELETE FROM items WHERE story_id=1"):
@@ -186,6 +188,7 @@ def test_backup_restores_and_corruption_is_detected(db, tmp_path):
     data = str(db.execute("PRAGMA database_list").fetchone()[2]).rsplit(os.sep, 1)[0]
     evidence.archive_story(db, 1, NOW, data, cfg, get=web(), wb=lambda u: ("", "x"))
     sc.store(db, 1, [sc._item("headline", "h", "PASS", "x")], NOW)
+    lc.store_pass(db, 1, NOW)
     db.commit()
     arc = backup.make_backup(data, str(tmp_path / "out"), NOW)
     res = backup.restore_test(arc)

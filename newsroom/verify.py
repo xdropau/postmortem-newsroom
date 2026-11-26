@@ -85,6 +85,7 @@ def seed_claims(conn, story_id: int, cfg, now):
     text = " ".join([s["headline"]] + [i["summary"] or "" for i in items[:4]])
 
     def add(ctype, claim, status="UNVERIFIED", manual=0, url=None, evidence=None):
+        url = url or s["primary_url"] or s["original_url"]     # every claim must link to a source record
         conn.execute("INSERT INTO claims(story_id, claim_type, claim_text, status, manual, source_url, evidence, checked_at) "
                      "VALUES(?,?,?,?,?,?,?,?)", (story_id, ctype, claim, status, manual, url, evidence, iso(now)))
 
