@@ -303,3 +303,30 @@ def test_site_feed_links_come_only_from_source_records(db, web, tmp_path):
     assert all(t["url"] in ("", URL) for t in s["timeline"])                # an uncited URL is never linked
     assert [f["text"] for f in s["key_facts"]] == ["Bank charged over fraud scheme"]   # housekeeping checks are not public facts
     assert s["id"] == "PM-000001" and se.build(db, NOW)["evidence"][0]["story_id"] == "PM-000001"
+
+
+def test_tapwatch_answers_a_tap_at_once_and_starts_the_worker_without_confirming_updates():
+    from newsroom import tapwatch
+
+    class S:
+        def __init__(self):
+            self.calls = []
+            self.ups = [{"update_id": 7, "callback_query": {"id": "cb1", "data": "pm:approve:5", "message": {"chat": {"id": 42}, "message_id": 9}}},
+                        {"update_id": 8, "callback_query": {"id": "cb2", "data": "pm:approve:5", "message": {"chat": {"id": 999}}}}]
+
+        def post(self, url, json=None, timeout=None):
+            self.calls.append((url.rsplit("/", 1)[1], json))
+
+            class R:
+                status_code = 200
+                def __init__(s, body): s.body = body
+                def json(s): return s.body
+            return R({"ok": True, "result": self.ups} if "getUpdates" in url else {"ok": True})
+    s, seen, fired = S(), set(), []
+    assert tapwatch.step(s, "T", "42", seen, lambda: fired.append(1)) == 1
+    names = [c[0] for c in s.calls]
+    assert names == ["getUpdates", "answerCallbackQuery", "sendMessage"]
+    assert "offset" not in s.calls[0][1]                       # never confirms: the real worker still gets the tap
+    assert s.calls[1][1]["callback_query_id"] == "cb1" and "Working" in s.calls[1][1]["text"]
+    assert "Approve (story 5)" in s.calls[2][1]["text"] and fired == [1]
+    assert tapwatch.step(s, "T", "42", seen, lambda: fired.append(1)) == 0 and fired == [1]    # same tap is not acknowledged twice; strangers ignored
