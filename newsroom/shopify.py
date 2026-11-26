@@ -190,7 +190,9 @@ def check_article(a: dict, link_ok) -> dict:
     elif not any(link_ok(i) for i in ids):
         problems.append("YouTube link does not open")
     return {"id": a["id"], "title": a["title"], "handle": a["handle"], "blog": (a.get("blog") or {}).get("handle"), "published": bool(a["isPublished"]),
-            "publishedAt": a.get("publishedAt"), "createdAt": a.get("createdAt"), "tags": a.get("tags") or [], "body_chars": len(body), "youtube": ids[:1], "problems": problems}
+            "publishedAt": a.get("publishedAt"), "createdAt": a.get("createdAt"), "tags": a.get("tags") or [], "body_chars": len(body), "youtube": ids[:1], "problems": problems,
+            "body_says_verified": "verified" in body.lower(), "meta_sources_lines": len([x for x in (meta.get("sources") or "").splitlines() if x.strip() and "[TO ADD]" not in x]),
+            "meta_keys": sorted(meta)}
 
 
 def youtube_ok(vid: str) -> bool:
