@@ -49,10 +49,10 @@ def ingest(conn, items: list[dict], now, cfg) -> dict:
         plinks = [l for l in it.get("links", []) if is_primary_domain(l, cfg)]
         conn.execute(
             """INSERT INTO items(story_id, source_id, org, bot, tier, title, url, canonical_url, content_hash,
-               published_at, pub_known, detected_at, summary, has_image, primary_links)
-               VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+               published_at, pub_known, detected_at, summary, has_image, primary_links, tags)
+               VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (sid, it["source_id"], it["org"], it["bot"], it["tier"], it["title"], it["url"], cu, ch,
-             iso(pub), 1 if pub else 0, iso(now), it["summary"], int(it["has_image"]), json.dumps(plinks)))
+             iso(pub), 1 if pub else 0, iso(now), it["summary"], int(it["has_image"]), json.dumps(plinks), it.get("tags", "")))
         conn.execute("UPDATE stories SET last_item_at=? WHERE id=?", (iso(now), sid))
         stats["new"] += 1
         stats["touched"].add(sid)

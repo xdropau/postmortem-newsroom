@@ -46,7 +46,7 @@ def main(argv=None) -> int:
     except Exception:  # noqa: BLE001
         pass
     p = argparse.ArgumentParser(prog="newsroom")
-    p.add_argument("cmd", choices=["cycle", "briefing", "health", "dashboard", "audit", "selftest", "acceptance", "package", "draft", "prune", "commands", "submit", "metrics", "export-evidence", "check-narration", "lead", "secondcheck", "evidence", "verify-log", "backup", "restore-test", "restore", "export-backup", "backup-retention", "site-export", "testcard", "linkwatch", "tapwatch-check"])
+    p.add_argument("cmd", choices=["cycle", "briefing", "health", "dashboard", "audit", "selftest", "acceptance", "package", "draft", "prune", "commands", "submit", "metrics", "export-evidence", "check-narration", "lead", "secondcheck", "evidence", "verify-log", "backup", "restore-test", "restore", "export-backup", "backup-retention", "site-export", "testcard", "linkwatch", "tapwatch-check", "samplecard"])
     p.add_argument("arg", nargs="?")
     p.add_argument("--force", action="store_true")
     p.add_argument("--out", default="dashboard_out")
@@ -64,6 +64,10 @@ def main(argv=None) -> int:
         out["commands_handled"] = commands.poll(conn, n, now)
         print(json.dumps(out, default=str))
         return 0 if any(b["status"] != "error" for b in out["bots"]) else 1
+    if a.cmd == "samplecard":
+        from . import review
+        print(review.send_sample_card(conn, n, now))
+        return 0
     if a.cmd == "tapwatch-check":
         from . import tapwatch
         print(tapwatch.ensure_alive(n, now))

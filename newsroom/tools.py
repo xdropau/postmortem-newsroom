@@ -9,7 +9,7 @@ from .briefing import build as build_briefing
 from .config import ROOT
 from .cycle import mark_source, record_run, send_alerts
 from .db import kv_get, kv_set
-from .fetch import FetchError, http_get, parse_feed
+from .fetch import FetchError, http_get, parse_feed, fetch_items
 from .ingest import ingest, rescore_recent
 from .notify import e
 from . import changelog, editorial as ed, linkcheck as lc, secondcheck as sc
@@ -24,8 +24,7 @@ def audit(conn, cfg, notifier, now, get=http_get) -> list[dict]:
     for src in [s for s in cfg["sources"]["sources"] if s.get("enabled", True)]:
         row = {"id": src["id"], "org": src["org"], "bot": src["bot"], "status": "OK", "entries": 0, "newest_age": None, "no_timestamp": 0, "link_ok": None}
         try:
-            r = get(src["url"], retries=1)
-            items = parse_feed(r.content, src)
+            items, _st = fetch_items(src, get)
             row["entries"] = len(items)
             pubs = [i["published_at"] for i in items if i["published_at"]]
             row["no_timestamp"] = len(items) - len(pubs)
@@ -66,7 +65,7 @@ def selftest(conn, cfg, notifier, now, get=http_get) -> dict:
     for bot in ("radar", "primary"):
         for src in [s for s in cfg["sources"]["sources"] if s["bot"] == bot and s.get("enabled", True)]:
             try:
-                items += parse_feed(get(src["url"], retries=1).content, src)
+                items += fetch_items(src, get)[0]
                 mark_source(conn, src, now, True, 0)
             except Exception as ex:  # noqa: BLE001
                 mark_source(conn, src, now, False, err=str(ex), http=getattr(ex, "status", None))

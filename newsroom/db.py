@@ -205,6 +205,9 @@ STORY_COLUMNS = {"breaking": "INTEGER DEFAULT 0", "breaking_until": "TEXT", "art
                  "social_refs": "TEXT", "format": "TEXT DEFAULT 'story'", "test_only": "INTEGER DEFAULT 0"}
 
 
+ITEM_COLUMNS = {"tags": "TEXT"}
+
+
 CLAIM_COLUMNS = {"cite_text": "TEXT", "link_override": "TEXT"}
 
 
@@ -215,6 +218,10 @@ def migrate(conn):
         if col not in have:
             conn.execute(f"ALTER TABLE stories ADD COLUMN {col} {decl}")
     conn.execute("UPDATE stories SET test_only=1 WHERE category='TEST CARD' AND COALESCE(test_only,0)=0")      # test cards are always test-only
+    have = {r["name"] for r in conn.execute("PRAGMA table_info(items)")}
+    for col, decl in ITEM_COLUMNS.items():
+        if col not in have:
+            conn.execute(f"ALTER TABLE items ADD COLUMN {col} {decl}")
     have = {r["name"] for r in conn.execute("PRAGMA table_info(claims)")}
     for col, decl in CLAIM_COLUMNS.items():
         if col not in have:

@@ -8,7 +8,7 @@ from datetime import timedelta
 from . import changelog, editorial, review
 from .config import sources_for
 from .db import bump_usage
-from .fetch import FetchError, http_get, parse_feed
+from .fetch import FetchError, http_get, parse_feed, fetch_items
 from .ingest import ingest, rescore_recent
 from .notify import format_alert
 from .package import build_package, make_hooks
@@ -63,8 +63,8 @@ def run_feed_bot(conn, bot: str, cfg: dict, now, get=http_get) -> dict:
 
     def work(src):
         try:
-            r = get(src["url"])
-            return src, parse_feed(r.content, src), r.status_code, None
+            items, status = fetch_items(src, get)
+            return src, items, status, None
         except Exception as ex:  # noqa: BLE001 - isolate every source
             return src, None, getattr(ex, "status", None), ex
 

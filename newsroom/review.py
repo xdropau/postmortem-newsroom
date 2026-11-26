@@ -18,6 +18,7 @@ from .verify import can_approve, open_sources, outstanding, refresh_status
 
 UNDO_MINUTES = 10
 TEST_CATEGORY = "TEST CARD"
+SAMPLE_CATEGORY = "SAMPLE"
 CHECKS = (("sources", "Sources found"), ("facts", "Facts checked"), ("dates", "Dates confirmed"),
           ("second", "Second check passed"), ("links", "Links verified"))
 
@@ -33,7 +34,7 @@ def is_test(s) -> bool:
 
 def checklist(conn, sid: int) -> dict:
     s = _story(conn, sid)
-    if is_test(s):      # the Telegram test card: a safe, scripted example (see apply_action)
+    if s and (s["category"] or "") == TEST_CATEGORY:      # the Telegram test card: a safe, scripted example (see apply_action)
         links = kv_get(conn, "testcard:links", "0") == "1"
         flags = {"sources": True, "facts": True, "dates": True, "second": True, "links": links}
         why = {} if links else {"links": "one link has not been re-opened yet"}
@@ -171,6 +172,8 @@ def apply_action(conn, action: str, ident: int, now, data_dir: str = "data", cfg
     if action == "card":
         return _result(card_text(conn, ident, now), keyboard(conn, ident), new=True, answer="")
 
+    if action == "more" and (s["category"] or "") == SAMPLE_CATEGORY:
+        return _result(card_text(conn, ident, now, "🔍 SAMPLE card: checks are not run on sample stories.\n"), keyboard(conn, ident), answer="Sample: nothing to check")
     if action == "more":
         if test:
             kv_set(conn, "testcard:links", "1")
@@ -179,6 +182,11 @@ def apply_action(conn, action: str, ident: int, now, data_dir: str = "data", cfg
             auto_checks(conn, ident, now, data_dir, cfg, get, wb)
         return _result(card_text(conn, ident, now, "🔍 Checks re-run.\n"), keyboard(conn, ident), answer="Checks re-run")
 
+    if action == "approve" and (s["category"] or "") == SAMPLE_CATEGORY:
+        return _result(card_text(conn, ident, now, "⛔ <b>SAMPLE card:</b> it can never be approved or published. The buttons only show how review works.\n"), keyboard(conn, ident),
+                       answer="Sample: never published")
+    if action == "more" and (s["category"] or "") == SAMPLE_CATEGORY:
+        return _result(card_text(conn, ident, now, "🔍 SAMPLE card: checks are not run on sample stories.\n"), keyboard(conn, ident), answer="Sample: nothing to check")
     if action == "approve":
         if not test:
             auto_checks(conn, ident, now, data_dir, cfg, get, wb)          # a fresh link check always runs before approval
@@ -324,3 +332,40 @@ def send_test_card(conn, notifier, now) -> str:
             "1) Tap Approve: it is refused and says what is missing.\n2) Tap “Needs more checking”: the missing check turns to yes.\n"
             "3) Tap Approve again, then Undo.\n\n" + card_text(conn, sid, now))
     return notifier.send_once(f"testcard:{iso(now)}", "testcard", text, now, story_id=sid, markup=keyboard(conn, sid))
+
+
+# ---------------------------------------------------------------- the DOJ SAMPLE story (never publishable)
+SAMPLE_HEAD = "SAMPLE: Former CEO indicted for $1.2 billion securities fraud and money laundering, DOJ documents unsealed"
+SAMPLE_URL = "https://doj.gov/p1"
+
+
+def ensure_sample_card(conn, now) -> int:
+    """A made-up story shaped like a real one. test_only + lead_only: the exporter, briefing and Approve all refuse it."""
+    r = conn.execute("SELECT id FROM stories WHERE category=?", (SAMPLE_CATEGORY,)).fetchone()
+    if r:
+        conn.execute("UPDATE stories SET test_only=1, lead_only=1 WHERE id=?", (r["id"],))
+        return r["id"]
+    pub = iso(now - timedelta(minutes=30))
+    cur = conn.execute("INSERT INTO stories(headline,headline_norm,source_org,detected_at,last_item_at,published_at,category,score,lead_only,pub_known,evidence_ok,editorial_status,test_only) "
+                       "VALUES(?,?,?,?,?,?,?,?,1,1,1,'verifying',1)", (SAMPLE_HEAD, "sample doj indicted", "US Department of Justice (SAMPLE)", iso(now), iso(now), pub, SAMPLE_CATEGORY, 0))
+    sid = cur.lastrowid
+    conn.execute("INSERT INTO items(story_id,source_id,org,bot,tier,title,url,canonical_url,content_hash,published_at,pub_known,detected_at,summary,tags) VALUES(?,?,?,?,?,?,?,?,?,?,1,?,?,?)",
+                 (sid, "sample", "US Department of Justice (SAMPLE)", "primary", "primary", SAMPLE_HEAD, SAMPLE_URL, "sample:" + SAMPLE_URL, "sample", pub, iso(now),
+                  "SAMPLE TEXT. A made-up press release used only to show how a review card looks. Nothing in it is real.", "official-source,sample"))
+    for typ, text, status in (("core", "The Department of Justice says a former chief executive was indicted on securities fraud and money laundering charges.", "COMPANY-REPORTED"),
+                              ("figure", "The indictment refers to $1.2 billion.", "VERIFIED"),
+                              ("dates", "The documents were unsealed on 24 November 2026.", "UNVERIFIED"),
+                              ("names", "The names of the people and companies are correct.", "UNVERIFIED")):
+        conn.execute("INSERT INTO claims(story_id,claim_type,claim_text,status,source_url) VALUES(?,?,?,?,?)", (sid, typ, text, status, SAMPLE_URL))
+    conn.commit()
+    return sid
+
+
+def send_sample_card(conn, notifier, now) -> str:
+    sid = ensure_sample_card(conn, now)
+    it = conn.execute("SELECT * FROM items WHERE story_id=? LIMIT 1", (sid,)).fetchone()
+    src = "\n".join([f"1. {e(it['org'])} (official source): {e(SAMPLE_URL)}",
+                       f"   published {(it['published_at'] or '')[:10]} - retrieved: not yet - archived copy: not yet"])
+    text = "\n\n".join(["🧪 <b>SAMPLE: not a real story. It can never be published.</b>\nTry the buttons to see how review works.",
+                          card_text(conn, sid, now), "<b>Summary</b>\n" + e(it["summary"]), "<b>Sources</b>\n" + src])
+    return notifier.send_once(f"samplecard:{iso(now)}", "samplecard", text, now, story_id=sid, markup=keyboard(conn, sid))

@@ -7,7 +7,7 @@ on:
         description: "What to run"
         type: choice
         required: true
-        options: [audit, selftest, acceptance, briefing-force, testcard, linkwatch]
+        options: [audit, selftest, acceptance, briefing-force, testcard, linkwatch, samplecard]
 concurrency:
   group: newsroom-data
   cancel-in-progress: false
@@ -41,6 +41,7 @@ jobs:
             acceptance) python -m newsroom acceptance | tee "$GITHUB_STEP_SUMMARY" ;;
             briefing-force) python -m newsroom briefing --force ;;
             testcard) python -m newsroom testcard ;;
+            samplecard) python -m newsroom samplecard ;;
             linkwatch) python -m newsroom linkwatch ;;
           esac
       - name: Save data
