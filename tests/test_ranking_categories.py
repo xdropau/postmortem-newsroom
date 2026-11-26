@@ -27,6 +27,15 @@ def test_spac_routine_8k_scores_low(conn, cfg):
     assert s <= 30 and c["kind"] == "routine-shell"
 
 
+def test_item_headings_alone_are_not_event_content(conn, cfg):
+    # "Notice of Delisting" is only the standard heading of Item 3.01; for a SPAC it is routine boilerplate.
+    s, c = score_of(conn, cfg, f8k("Omega Merger Corp. II", "Item 3.01: Notice of Delisting or Failure to Satisfy a Continued Listing Rule"))
+    assert c["kind"] == "routine-shell" and s <= 30
+    s, c = score_of(conn, cfg, f8k("Real Operating Co", "Item 3.01: Notice of Delisting or Failure to Satisfy a Continued Listing Rule"))
+    assert c["kind"] == "operating-event" and s <= 50
+    assert conn.execute("SELECT category FROM stories ORDER BY id DESC LIMIT 1").fetchone()["category"] == "SEC 8-K filing"
+
+
 def test_small_filer_executive_departure_is_capped(conn, cfg):
     s, c = score_of(conn, cfg, f8k("Tiny Widgets Inc", "Item 5.02 Departure of Directors or Certain Officers"))
     assert s <= 40 and c["kind"] == "unsupported-event"
@@ -44,7 +53,7 @@ def test_real_event_items_rank_even_for_small_filers_and_spacs(conn, cfg):
 
 
 def test_small_filer_with_event_wording_ranks(conn, cfg):
-    s, c = score_of(conn, cfg, f8k("Mid Co", "Item 1.03 Bankruptcy", "Filed voluntary petition under Chapter 11"))
+    s, c = score_of(conn, cfg, f8k("Mid Co", "Item 8.01 Other Events", "Filed voluntary petition under Chapter 11 bankruptcy"))
     assert c["kind"] == "real-event"
 
 

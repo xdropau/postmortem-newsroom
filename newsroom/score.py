@@ -63,6 +63,9 @@ def classify_sec_8k(story: dict, items: list[dict], cfg: dict) -> dict | None:
     name = " ".join([story["headline"]] + [i["title"] or "" for i in sec]).lower()
     text = " ".join([name] + [i["summary"] or "" for i in sec]).lower()
     codes = set(re.findall(r"item\s+(\d\.\d{2})", text))
+    # EDGAR summaries carry only the standard item headings ("Notice of Delisting...", "Bankruptcy or Receivership");
+    # those restate the item code and are not filing content, so strip them before looking for event wording.
+    text = re.sub(r"item\s+\d\.\d{2}:.*?(?=item\s+\d\.\d{2}|$)", " ", text)
     shell = any(re.search(p, name) for p in k["shell_name_patterns"])
     large = any(w in name for w in k["large_filers"])
     outlets = {i["org"] for i in items if i["bot"] != "trends" and i["source_id"] not in k["source_ids"]}
@@ -70,8 +73,11 @@ def classify_sec_8k(story: dict, items: list[dict], cfg: dict) -> dict | None:
     terms = [t for t in k["real_event_terms"] if t in text]
     hard = sorted(codes & set(k["real_event_item_codes"]))
     cond = sorted(codes & set(k["conditional_item_codes"]))
+    operating_event = sorted(codes & set(k["operating_company_event_codes"])) if not shell else []
     if hard or (terms and not shell) or covered:
         return {"kind": "real-event", "cap": 100, "reasons": hard + terms[:3] + (["news coverage"] if covered else [])}
+    if operating_event and not large:
+        return {"kind": "operating-event", "cap": k["operating_event_cap"], "reasons": operating_event + ["bankruptcy/delisting notice, small filer, no coverage"]}
     if cond and large:
         return {"kind": "large-company-event", "cap": 100, "reasons": cond + ["large company"]}
     if shell:
@@ -99,6 +105,9 @@ def score_story(story: dict, items: list[dict], now: datetime, trend_terms: set[
     fresh = freshness_points(age_min, bool(known))
 
     cats = [cat for cat in cfg["keywords"]["priority_order"] if _hits(c["cats"][cat], text) > 0]
+    sec8k = classify_sec_8k(story, items, cfg)
+    if sec8k:   # item headings ("Election of Directors", "Notice of Delisting") and company names are not topics
+        cats = (["Corporate scandals"] if "4.02" in sec8k["reasons"] else ["Cybersecurity"] if "1.05" in sec8k["reasons"] else [])
     if is_live_blog(story["headline"], [i["url"] for i in items]) and _hits(c["cats"]["Politics"], headline) > 0:
         cats = ["Politics"] + [x for x in cats if x != "Politics"]   # a politics live blog is politics, whatever else the summary mentions
     orgs = sorted({i["org"] for i in news_items})
@@ -143,14 +152,13 @@ def score_story(story: dict, items: list[dict], now: datetime, trend_terms: set[
     total = fresh + interest + evid + aud + angle + visual
     if sensational:
         total = max(0, total - 8)
-    sec8k = classify_sec_8k(story, items, cfg)
     if sec8k:
         total = min(total, sec8k["cap"])
     if lead_only:
         total = min(total, 60)  # social/search trends are discovery leads, never alert-grade on their own
 
     return {
-        "score": int(total), "category": cats[0] if cats else "Uncategorised", "categories": cats,
+        "score": int(total), "category": cats[0] if cats else ("SEC 8-K filing" if sec8k else "Uncategorised"), "categories": cats,
         "breakdown": {"freshness": fresh, "public_interest": interest, "evidence": evid, "audience": aud,
                       "investigative_angle": angle, "visual": visual, "sensational_penalty": 8 if sensational else 0},
         "sec_8k": sec8k,
