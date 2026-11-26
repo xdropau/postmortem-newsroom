@@ -347,3 +347,21 @@ def test_tap_always_gets_a_plain_result_message_and_dead_watcher_is_restarted_an
     assert tapwatch.ensure_alive(n, NOW, lambda: [{"status": "in_progress", "updated_at": ""}], lambda: started.append(2)) == "alive" and started == [1]
     assert tapwatch.ensure_alive(n, NOW, lambda: runs, lambda: started.append(3)) == "restarted"
     assert sum("Button watcher was down" in x for x in t.sent) == 1           # one alert per hour
+
+
+def test_test_cards_are_test_only_and_never_exported_even_if_forced(db, tmp_path):
+    from datetime import timedelta
+    from conftest import NOW
+    from newsroom import editorial as ed, siteexport
+    sid = review.ensure_test_card(db, NOW)
+    assert db.execute("SELECT test_only, lead_only FROM stories WHERE id=?", (sid,)).fetchone()[:] == (1, 1)
+    out = review.apply_action(db, "approve", sid, NOW, data_dir=str(tmp_path))       # scripted tap: nothing is really approved
+    assert db.execute("SELECT COUNT(*) FROM approvals WHERE story_id=?", (sid,)).fetchone()[0] == 0
+    assert ed.approve(db, sid, NOW)["ok"] is False and "test card" in ed.approve(db, sid, NOW)["error"]
+    # worst case: someone forces every flag by hand; the exporter must still skip it everywhere
+    db.execute("UPDATE stories SET lead_only=0, editorial_status='published', breaking=1, breaking_until=? WHERE id=?", ((NOW + timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%SZ"), sid))
+    db.execute("INSERT INTO live_coverage(story_id,title,state,opened_at) VALUES(?,?,'open',?)", (sid, "TEST live", NOW.strftime("%Y-%m-%dT%H:%M:%SZ")))
+    db.commit()
+    data = siteexport.build(db, NOW)
+    assert data["stories"] == [] and data["breaking"] is None and data["live"] == [] and data["evidence"] == [] and data["corrections"] == []
+    assert "TEST CARD" not in __import__("json").dumps(data)

@@ -74,7 +74,8 @@ def _summary(content: str, n: int = 300) -> str:
 
 def approved_story_ids(conn) -> list[int]:
     out = []
-    for r in conn.execute("SELECT id FROM stories WHERE lead_only=0 AND editorial_status IN ('approved','published') ORDER BY id"):
+    for r in conn.execute("SELECT id FROM stories WHERE lead_only=0 AND COALESCE(test_only,0)=0 AND COALESCE(category,'')!='TEST CARD' "
+                          "AND editorial_status IN ('approved','published') ORDER BY id"):      # RULE: test cards and leads are never exported
         ok, _ = ed.can_publish(conn, r["id"], "website")
         if ok:
             out.append(r["id"])
@@ -117,6 +118,8 @@ def build(conn, now) -> dict:
 
     live = []
     for cov in conn.execute("SELECT * FROM live_coverage ORDER BY opened_at DESC"):
+        if ed.is_test_only(conn, cov["story_id"]):
+            continue
         ups = ed.live_publishable(conn, cov["story_id"])
         if not ups:
             continue    # nothing approved yet: the coverage page does not exist publicly
@@ -124,7 +127,7 @@ def build(conn, now) -> dict:
                      "updates": [{"id": u["id"], "at": u["approved_at"] or u["created_at"], "text": u["text"],
                                   "classification": u["classification"], "source_url": u["source_url"]} for u in ups]})
 
-    pub_ok = {r["id"] for r in conn.execute("SELECT id FROM stories WHERE editorial_status IN ('approved','published')")}
+    pub_ok = {r["id"] for r in conn.execute("SELECT id FROM stories WHERE editorial_status IN ('approved','published') AND COALESCE(test_only,0)=0 AND COALESCE(category,'')!='TEST CARD'")}
     corrections = []
     for c in conn.execute("SELECT c.*, s.headline FROM corrections c JOIN stories s ON s.id=c.story_id WHERE c.status='published' "
                           "ORDER BY COALESCE(c.published_at, c.created_at) DESC"):

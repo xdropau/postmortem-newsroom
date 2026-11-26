@@ -28,7 +28,7 @@ def _story(conn, sid):
 
 
 def is_test(s) -> bool:
-    return bool(s) and (s["category"] or "") == TEST_CATEGORY
+    return bool(s) and ((s["category"] or "") == TEST_CATEGORY or bool(s["test_only"]))
 
 
 def checklist(conn, sid: int) -> dict:
@@ -307,9 +307,10 @@ def ensure_test_card(conn, now) -> int:
     """A clearly-labelled sample story (lead_only, so it can never reach the briefing, dashboard top 5 or the website export)."""
     r = conn.execute("SELECT id FROM stories WHERE category=?", (TEST_CATEGORY,)).fetchone()
     if r:
+        conn.execute("UPDATE stories SET test_only=1, lead_only=1 WHERE id=?", (r["id"],))
         return r["id"]
-    cur = conn.execute("INSERT INTO stories(headline,headline_norm,source_org,detected_at,last_item_at,category,score,lead_only,pub_known,evidence_ok,editorial_status) "
-                       "VALUES(?,?,?,?,?,?,?,1,1,1,'verifying')",
+    cur = conn.execute("INSERT INTO stories(headline,headline_norm,source_org,detected_at,last_item_at,category,score,lead_only,pub_known,evidence_ok,editorial_status,test_only) "
+                       "VALUES(?,?,?,?,?,?,?,1,1,1,'verifying',1)",
                        ("TEST CARD: tap the buttons to see how review works. Nothing here is real.", "test card", "Post-Mortem test", iso(now), iso(now), TEST_CATEGORY, 0))
     conn.commit()
     return cur.lastrowid

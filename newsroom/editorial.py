@@ -105,8 +105,15 @@ def _sync_story_status(conn, sid: int):
     conn.execute("UPDATE stories SET editorial_status=? WHERE id=?", (new, sid))
 
 
+def is_test_only(conn, sid: int) -> bool:
+    r = conn.execute("SELECT category, test_only FROM stories WHERE id=?", (sid,)).fetchone()
+    return bool(r) and (bool(r["test_only"]) or (r["category"] or "") == "TEST CARD")
+
+
 def approve(conn, sid: int, now, kind: str | None = None, destination: str = "all", by: str = "owner") -> dict:
     """Approve the LATEST version of one kind (or all kinds). Approval is bound to the version's content hash."""
+    if is_test_only(conn, sid):
+        return {"ok": False, "error": "this is a test card: it can never be approved or published"}
     ok, out = can_approve(conn, sid)
     if not ok:
         return {"ok": False, "error": "verification incomplete", "outstanding": out}
@@ -153,6 +160,8 @@ def can_publish(conn, sid: int, destination: str | None = None) -> tuple[bool, s
     s = _story(conn, sid)
     if not s:
         return False, "no such story"
+    if is_test_only(conn, sid):
+        return False, "test card: never published"
     if s["editorial_status"] == "rejected":
         return False, "story is rejected"
     ok, out = can_approve(conn, sid)

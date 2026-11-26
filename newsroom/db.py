@@ -202,7 +202,7 @@ def connect(data_dir: str) -> sqlite3.Connection:
 
 
 STORY_COLUMNS = {"breaking": "INTEGER DEFAULT 0", "breaking_until": "TEXT", "article_id": "TEXT", "video_id": "TEXT",
-                 "social_refs": "TEXT", "format": "TEXT DEFAULT 'story'"}
+                 "social_refs": "TEXT", "format": "TEXT DEFAULT 'story'", "test_only": "INTEGER DEFAULT 0"}
 
 
 CLAIM_COLUMNS = {"cite_text": "TEXT", "link_override": "TEXT"}
@@ -214,6 +214,7 @@ def migrate(conn):
     for col, decl in STORY_COLUMNS.items():
         if col not in have:
             conn.execute(f"ALTER TABLE stories ADD COLUMN {col} {decl}")
+    conn.execute("UPDATE stories SET test_only=1 WHERE category='TEST CARD' AND COALESCE(test_only,0)=0")      # test cards are always test-only
     have = {r["name"] for r in conn.execute("PRAGMA table_info(claims)")}
     for col, decl in CLAIM_COLUMNS.items():
         if col not in have:
