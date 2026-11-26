@@ -42,6 +42,45 @@ def freshness_points(age_minutes: float, pub_known: bool) -> int:
     return 0
 
 
+_LIVE = re.compile(r"(/live/|\blive\s*$|\blive blog\b|\blive updates?\b|\blive:|[-–—:]\s*live\b)", re.I)
+
+
+def is_live_blog(headline: str, urls) -> bool:
+    return bool(_LIVE.search(headline or "") or any("/live/" in (u or "") or "/live-" in (u or "") for u in urls))
+
+
+def classify_sec_8k(story: dict, items: list[dict], cfg: dict) -> dict | None:
+    """Deterministic triage of EDGAR 8-K filings. Returns None for non-8-K stories, else {kind, cap, reasons}.
+    Routine filings (SPACs, shells, small filers, no event signal) get a low cap so they never fill the top 5. A filing
+    ranks normally only when its content signals a real event, a large company is involved, or independent outlets
+    also cover it. Pure keyword/regex rules, no AI."""
+    k = cfg["keywords"].get("sec_8k")
+    if not k:
+        return None
+    sec = [i for i in items if i["source_id"] in k["source_ids"]]
+    if not sec:
+        return None
+    name = " ".join([story["headline"]] + [i["title"] or "" for i in sec]).lower()
+    text = " ".join([name] + [i["summary"] or "" for i in sec]).lower()
+    codes = set(re.findall(r"item\s+(\d\.\d{2})", text))
+    shell = any(re.search(p, name) for p in k["shell_name_patterns"])
+    large = any(w in name for w in k["large_filers"])
+    outlets = {i["org"] for i in items if i["bot"] != "trends" and i["source_id"] not in k["source_ids"]}
+    covered = len(outlets) >= k["coverage_min_outlets"]
+    terms = [t for t in k["real_event_terms"] if t in text]
+    hard = sorted(codes & set(k["real_event_item_codes"]))
+    cond = sorted(codes & set(k["conditional_item_codes"]))
+    if hard or (terms and not shell) or covered:
+        return {"kind": "real-event", "cap": 100, "reasons": hard + terms[:3] + (["news coverage"] if covered else [])}
+    if cond and large:
+        return {"kind": "large-company-event", "cap": 100, "reasons": cond + ["large company"]}
+    if shell:
+        return {"kind": "routine-shell", "cap": k["routine_cap"], "reasons": ["SPAC/shell filer, no real-event signal"]}
+    if cond:
+        return {"kind": "unsupported-event", "cap": k["conditional_unsupported_cap"], "reasons": cond + ["small filer, no coverage"]}
+    return {"kind": "routine", "cap": k["routine_cap"], "reasons": ["no real-event signal"]}
+
+
 def is_primary_domain(url: str, cfg) -> bool:
     d = domain_of(url)
     return any(d == p or d.endswith("." + p) for p in cfg["settings"]["primary_domains"])
@@ -60,6 +99,8 @@ def score_story(story: dict, items: list[dict], now: datetime, trend_terms: set[
     fresh = freshness_points(age_min, bool(known))
 
     cats = [cat for cat in cfg["keywords"]["priority_order"] if _hits(c["cats"][cat], text) > 0]
+    if is_live_blog(story["headline"], [i["url"] for i in items]) and _hits(c["cats"]["Politics"], headline) > 0:
+        cats = ["Politics"] + [x for x in cats if x != "Politics"]   # a politics live blog is politics, whatever else the summary mentions
     orgs = sorted({i["org"] for i in news_items})
     primary_items = [i for i in news_items if i["tier"] == "primary"]
     primary_link = None
@@ -102,6 +143,9 @@ def score_story(story: dict, items: list[dict], now: datetime, trend_terms: set[
     total = fresh + interest + evid + aud + angle + visual
     if sensational:
         total = max(0, total - 8)
+    sec8k = classify_sec_8k(story, items, cfg)
+    if sec8k:
+        total = min(total, sec8k["cap"])
     if lead_only:
         total = min(total, 60)  # social/search trends are discovery leads, never alert-grade on their own
 
@@ -109,6 +153,7 @@ def score_story(story: dict, items: list[dict], now: datetime, trend_terms: set[
         "score": int(total), "category": cats[0] if cats else "Uncategorised", "categories": cats,
         "breakdown": {"freshness": fresh, "public_interest": interest, "evidence": evid, "audience": aud,
                       "investigative_angle": angle, "visual": visual, "sensational_penalty": 8 if sensational else 0},
+        "sec_8k": sec8k,
         "age_minutes": round(age_min, 1), "pub_known": bool(known), "orgs": orgs,
         "evidence_ok": evidence_ok, "sensational": sensational, "lead_only": lead_only,
         "primary_url": primary_url, "trend_hit": trend_hit,

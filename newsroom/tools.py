@@ -39,7 +39,10 @@ def audit(conn, cfg, notifier, now, get=http_get) -> list[dict]:
                     row["link_ok"] = True
                 except FetchError as fe:
                     row["link_ok"] = False
-                    row["status"] = f"LINK {fe.status or 'ERR'}"
+                    if src.get("headlines_only") and fe.status in (401, 403):
+                        row["note"] = "headlines only: article pages refuse automated clients (not circumvented)"
+                    else:
+                        row["status"] = f"LINK {fe.status or 'ERR'}"
         except Exception as ex:  # noqa: BLE001
             row["status"] = f"FAIL {getattr(ex, 'status', None) or type(ex).__name__}"
         rows.append(row)
@@ -49,7 +52,7 @@ def audit(conn, cfg, notifier, now, get=http_get) -> list[dict]:
     kv_set(conn, "last_audit", iso(now))
     bad = [r for r in rows if r["status"] != "OK"]
     text = f"🔎 <b>Feed audit</b>: {len(rows) - len(bad)}/{len(rows)} OK\n" + \
-        "\n".join(f"{'✅' if r['status'] == 'OK' else '❌'} {e(r['id'])}: {e(r['status'])}, {r['entries']} items, newest {r['newest_age'] or 'n/a'}" for r in rows)
+        "\n".join(f"{'✅' if r['status'] == 'OK' else '❌'} {e(r['id'])}: {e(r['status'])}, {r['entries']} items, newest {r['newest_age'] or 'n/a'}{' (headlines only)' if r.get('note') else ''}" for r in rows)
     notifier.send_once(f"audit:{iso(now)}", "audit", text, now)
     return rows
 
