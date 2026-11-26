@@ -143,3 +143,95 @@ def list_articles(store: str, client_id: str, client_secret: str, session=None) 
         if not d["pageInfo"]["hasNextPage"]:
             return out
         cursor = d["pageInfo"]["endCursor"]
+
+
+PLACEHOLDER_WORDS = ("lorem ipsum", "placeholder", "todo", "tbd", "sample text", "test article", "test draft", "xxx")
+_FIELDS = "id title handle isPublished publishedAt createdAt updatedAt tags body summary blog { handle } metafields(first: 20) { nodes { namespace key value } }"
+
+
+def _strip(h: str) -> str:
+    import re
+    return re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", h or ""))).strip()
+
+
+def youtube_ids(text: str) -> list[str]:
+    import re
+    return list(dict.fromkeys(re.findall(r"(?:youtube\.com/(?:watch\?v=|embed/|shorts/)|youtu\.be/)([A-Za-z0-9_-]{11})", text or "")))
+
+
+def fetch_articles(c: Client) -> list[dict]:
+    out, cursor = [], None
+    while True:
+        d = c.gql("query($c:String){ articles(first: 50, after:$c) { nodes { " + _FIELDS + " } pageInfo { hasNextPage endCursor } } }", {"c": cursor})["articles"]
+        out += d["nodes"]
+        if not d["pageInfo"]["hasNextPage"]:
+            return out
+        cursor = d["pageInfo"]["endCursor"]
+
+
+def check_article(a: dict, link_ok) -> dict:
+    """Pre-publish checks: title, a date, a working YouTube link, readable body without placeholder or test text."""
+    problems = []
+    body = _strip(a.get("body"))
+    meta = {m["key"]: m["value"] for m in (a.get("metafields") or {}).get("nodes", []) if m["namespace"] == "custom"}
+    ids = youtube_ids((a.get("body") or "") + " " + " ".join(meta.values()))
+    if not (a.get("title") or "").strip():
+        problems.append("no title")
+    if not (a.get("publishedAt") or a.get("createdAt")):
+        problems.append("no date")
+    if len(body) < 80:
+        problems.append(f"body too short ({len(body)} characters)")
+    low = (body + " " + (a.get("title") or "")).lower()
+    bad = [w for w in PLACEHOLDER_WORDS if w in low]
+    if bad:
+        problems.append("placeholder or test text: " + ", ".join(bad))
+    if not ids:
+        problems.append("no YouTube link")
+    elif not any(link_ok(i) for i in ids):
+        problems.append("YouTube link does not open")
+    return {"id": a["id"], "title": a["title"], "handle": a["handle"], "blog": (a.get("blog") or {}).get("handle"), "published": bool(a["isPublished"]),
+            "publishedAt": a.get("publishedAt"), "createdAt": a.get("createdAt"), "tags": a.get("tags") or [], "body_chars": len(body), "youtube": ids[:1], "problems": problems}
+
+
+def youtube_ok(vid: str) -> bool:
+    try:
+        r = requests.get("https://www.youtube.com/oembed", params={"format": "json", "url": f"https://www.youtube.com/watch?v={vid}"}, timeout=20)
+        return r.status_code == 200
+    except requests.RequestException:
+        return False
+
+
+def audit_articles(store: str, client_id: str, client_secret: str, session=None, link_ok=youtube_ok) -> list[dict]:
+    """READ ONLY."""
+    c = Client(store, get_token(store, client_id, client_secret, session), session)
+    return [check_article(a, link_ok) for a in fetch_articles(c)]
+
+
+def publish_articles(store: str, client_id: str, client_secret: str, session=None, link_ok=youtube_ok) -> list[dict]:
+    """Publish ONLY the posts that pass every check, adding the pm-approved tag and keeping all existing tags.
+    Title, text, dates and links are never sent, so they are never changed."""
+    c = Client(store, get_token(store, client_id, client_secret, session), session)
+    res = []
+    for a in fetch_articles(c):
+        chk = check_article(a, link_ok)
+        if chk["problems"]:
+            res.append(dict(chk, action="skipped"))
+            continue
+        tags = list(dict.fromkeys((a.get("tags") or []) + ["pm-approved"]))
+        r = c.gql("mutation($id: ID!, $a: ArticleUpdateInput!){ articleUpdate(id: $id, article: $a){ article{ id isPublished publishedAt tags } userErrors{ message } } }",
+                  {"id": a["id"], "a": {"isPublished": True, "tags": tags}})["articleUpdate"]
+        if r["userErrors"] or not r["article"]:
+            res.append(dict(chk, action="failed", problems=[e["message"] for e in r["userErrors"]]))
+        else:
+            res.append(dict(chk, action="published", published=r["article"]["isPublished"], publishedAt=r["article"]["publishedAt"], tags=r["article"]["tags"]))
+    return res
+
+
+def unpublish_article(store: str, client_id: str, client_secret: str, handle: str, session=None) -> dict:
+    """Hide one post again (the tags and text stay as they are)."""
+    c = Client(store, get_token(store, client_id, client_secret, session), session)
+    a = next((x for x in fetch_articles(c) if x["handle"] == handle), None)
+    if not a:
+        raise ShopifyError(f"no article with the address name '{handle}'")
+    r = c.gql("mutation($id: ID!, $a: ArticleUpdateInput!){ articleUpdate(id: $id, article: $a){ article{ id isPublished } userErrors{ message } } }", {"id": a["id"], "a": {"isPublished": False}})["articleUpdate"]
+    return {"handle": handle, "published": bool(r["article"] and r["article"]["isPublished"]), "errors": [e["message"] for e in r["userErrors"]]}

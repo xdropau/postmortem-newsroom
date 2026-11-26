@@ -70,6 +70,21 @@ def main(argv=None) -> int:
         if not (store and cid and sec):
             print("Shopify settings missing: add SHOPIFY_STORE (variable), SHOPIFY_CLIENT_ID and SHOPIFY_CLIENT_SECRET (secrets).")
             return 3
+        if a.arg in ("audit", "publish") or (a.arg or "").startswith("hide:"):
+            try:
+                if a.arg == "audit":
+                    rows = shopify.audit_articles(store, cid, sec)
+                elif a.arg == "publish":
+                    rows = shopify.publish_articles(store, cid, sec)
+                else:
+                    rows = [shopify.unpublish_article(store, cid, sec, a.arg.split(":", 1)[1])]
+            except shopify.ShopifyError as ex:
+                print(f"STOPPED: {ex}")
+                n.send_raw(f"Shopify articles stopped: {ex}", now)
+                return 3
+            for r in rows:
+                print("ROW " + json.dumps(r, ensure_ascii=False))
+            return 0
         if a.arg == "list":
             try:
                 rows = shopify.list_articles(store, cid, sec)
