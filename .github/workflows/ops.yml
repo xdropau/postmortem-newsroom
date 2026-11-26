@@ -7,7 +7,7 @@ on:
         description: "What to run"
         type: choice
         required: true
-        options: [audit, selftest, acceptance, briefing-force, testcard, linkwatch, samplecard, shopify-drafts-dry, shopify-drafts]
+        options: [audit, selftest, acceptance, briefing-force, testcard, linkwatch, samplecard, shopify-drafts-dry, shopify-drafts, shopify-selftest]
 concurrency:
   group: newsroom-data
   cancel-in-progress: false
@@ -47,6 +47,7 @@ jobs:
             samplecard) python -m newsroom samplecard ;;
             shopify-drafts-dry) python -m newsroom shopify-drafts dry-run ;;
             shopify-drafts) python -m newsroom shopify-drafts ;;
+            shopify-selftest) python -m newsroom shopify-drafts selftest ;;
             linkwatch) python -m newsroom linkwatch ;;
           esac
       - name: Save data

@@ -70,6 +70,17 @@ def main(argv=None) -> int:
         if not (store and cid and sec):
             print("Shopify settings missing: add SHOPIFY_STORE (variable), SHOPIFY_CLIENT_ID and SHOPIFY_CLIENT_SECRET (secrets).")
             return 3
+        if a.arg == "selftest":
+            try:
+                res = shopify.selftest(store, cid, sec)
+            except shopify.ShopifyError as ex:
+                print(f"STOPPED: {ex}")
+                n.send_raw(f"Shopify draft self-test stopped: {ex}", now)
+                return 3
+            print(json.dumps(res, indent=1))
+            ok = res["draft_created"] and not res["was_published"] and res["deleted_again"]
+            n.send_raw(("Shopify draft self-test passed: a test draft was created UNPUBLISHED and deleted again. Nothing is on your store." if ok else f"Shopify draft self-test needs attention: {res}"), now)
+            return 0 if ok else 2
         items = json.load(open("config/shopify_drafts.json", encoding="utf-8"))
         try:
             res = shopify.run(items, store, cid, sec, dry_run=(a.arg == "dry-run"))

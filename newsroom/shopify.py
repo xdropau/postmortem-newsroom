@@ -115,3 +115,17 @@ def run(items: list[dict], store: str, client_id: str, client_secret: str, dry_r
         else:
             out["created"].append(it["title"])
     return out
+
+
+def selftest(store: str, client_id: str, client_secret: str, session=None) -> dict:
+    """Prove write access end to end without leaving anything behind: create ONE clearly-labelled unpublished draft, check it is a draft, delete it."""
+    c = Client(store, get_token(store, client_id, client_secret, session), session)
+    blog = find_blog(c)
+    art = {"blogId": blog["id"], "title": "ZZ AUTOMATED TEST DRAFT (deleted immediately)", "author": {"name": "The Post-Mortem"},
+           "body": "<p>Automated permission test. This draft is deleted straight away.</p>", "tags": ["automated-test"], "isPublished": False}
+    r = c.gql("mutation($a: ArticleCreateInput!){ articleCreate(article: $a){ article{ id isPublished } userErrors{ message } } }", {"a": art})["articleCreate"]
+    if r["userErrors"] or not r["article"]:
+        raise ShopifyError("Shopify refused to create the test draft: " + "; ".join(e["message"] for e in r["userErrors"])[:150])
+    aid, published = r["article"]["id"], r["article"]["isPublished"]
+    d = c.gql("mutation($id: ID!){ articleDelete(id: $id){ deletedArticleId userErrors{ message } } }", {"id": aid})["articleDelete"]
+    return {"blog": blog["title"], "draft_created": True, "was_published": bool(published), "deleted_again": bool(d.get("deletedArticleId")), "errors": [e["message"] for e in d["userErrors"]]}
