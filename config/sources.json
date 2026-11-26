@@ -222,10 +222,15 @@
       "org": "US Treasury OFAC",
       "bot": "primary",
       "tier": "primary",
-      "url": "https://ofac.treasury.gov/rss.xml",
+      "url": "https://ofac.treasury.gov/recent-actions",
       "verify": true,
       "official": true,
-      "note_method": "a: official RSS"
+      "note_method": "b: official Recent Actions page (the site RSS exists but its newest item is 650+ days old)",
+      "html_list": {
+        "href_regex": "/recent-actions/\\d{8}$",
+        "min_title": 12
+      },
+      "max_items": 20
     },
     {
       "id": "uk-gov-news",
@@ -331,7 +336,8 @@
         "min_title": 10
       },
       "max_items": 25,
-      "note_method": "b: official press page (no ICJ feed exists)"
+      "note_method": "b: official press page (no ICJ feed exists)",
+      "headlines_only": true
     },
     {
       "id": "un-news",
@@ -509,6 +515,15 @@
       "url": "https://news.google.com/rss/search?q=site:icj-cij.org+when:14d&hl=en-US&gl=US&ceid=US:en",
       "enabled": false,
       "disabled_reason": "fallback (c): switched on only if the direct feed or page is blocked"
+    },
+    {
+      "id": "ofac-rss-stale",
+      "org": "US Treasury OFAC (site RSS)",
+      "bot": "primary",
+      "tier": "primary",
+      "url": "https://ofac.treasury.gov/rss.xml",
+      "enabled": false,
+      "disabled_reason": "Official RSS works but is stale (newest item over 650 days old); replaced by the Recent Actions page (ofac-actions)."
     }
   ],
   "unavailable_at_zero_cost": {
