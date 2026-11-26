@@ -83,3 +83,13 @@ def test_watcher_heartbeat_starts_overdue_workflows_only():
     assert tapwatch.heartbeat(NOW, lambda w: runs[w], started.append) == ["cycle.yml"] and started == ["cycle.yml"]
     runs["cycle.yml"] = [{"status": "in_progress", "created_at": iso(90)}]          # already running: leave it alone
     assert tapwatch.heartbeat(NOW, lambda w: runs[w], started.append) == []
+
+
+def test_cycle_rescoring_skips_test_cards_and_itemless_stories(conn, cfg):
+    from conftest import NOW
+    from newsroom import ingest, review
+    tid = review.ensure_test_card(conn, NOW)        # a test card has no items at all
+    sid = review.ensure_sample_card(conn, NOW)
+    ingest.rescore_recent(conn, NOW, cfg)           # must not raise
+    row = conn.execute("SELECT category, lead_only FROM stories WHERE id IN (?,?) ORDER BY id", (tid, sid)).fetchall()
+    assert [r["category"] for r in row] == ["TEST CARD", "SAMPLE"] and all(r["lead_only"] == 1 for r in row)

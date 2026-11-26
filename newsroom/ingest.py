@@ -74,6 +74,6 @@ def rescore_recent(conn, now, cfg, only_ids=None, hours=48):
     terms = trend_terms(conn, now)
     if only_ids is None:
         since = iso(now - timedelta(hours=hours))
-        only_ids = [r["id"] for r in conn.execute("SELECT id FROM stories WHERE last_item_at>=?", (since,))]
+        only_ids = [r["id"] for r in conn.execute("SELECT id FROM stories WHERE last_item_at>=? AND COALESCE(test_only,0)=0", (since,))]
     for sid in only_ids:
         rescore_story(conn, sid, now, terms, cfg)

@@ -79,7 +79,7 @@ GitHub's free scheduler often skips runs. Every important job therefore has a se
 | `taps.yml` | every 5 min, plus on demand | Processes taps, publishes the approved feed | Started instantly by `tapwatch` on every tap; cycle also handles taps |
 | `tapwatch.yml` | every 20 min | About 50-minute watcher: answers taps in seconds, heartbeat for cycle/health | Queued so one always follows another; renews itself at the end; `cycle`, `health` and `taps` restart it and send "Button watcher was down" if it has been idle over 10 min |
 | `linkwatch.yml` | Monday 08:30 Sydney plus backup slot | Weekly link and page re-check of published stories | Backup slot; weekly summary is de-duplicated |
-| `keepalive.yml` | weekly | Stops GitHub disabling schedules after 60 quiet days | n/a |
+| `keepalive.yml` | weekly | Pushes a tiny commit so GitHub does not disable schedules after 60 quiet days | n/a |
 | `ops.yml` | manual | audit, selftest, acceptance, briefing-force, testcard, samplecard, linkwatch | n/a |
 | `tests.yml` | on push | Full test suite | Blocks nothing automatically; read the result |
 | `weekly-backup` (data repo, from `scripts/data-repo-backup.yml`) | Monday 05:30 Sydney | Weekly backup of the database | Restore test in `python -m newsroom restore-test` |

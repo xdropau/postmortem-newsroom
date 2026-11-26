@@ -172,6 +172,8 @@ def score_story(story: dict, items: list[dict], now: datetime, trend_terms: set[
 def rescore_story(conn, story_id: int, now: datetime, trend_terms: set[str], cfg: dict) -> dict:
     story = dict(conn.execute("SELECT * FROM stories WHERE id=?", (story_id,)).fetchone())
     items = [dict(r) for r in conn.execute("SELECT * FROM items WHERE story_id=? ORDER BY id", (story_id,))]
+    if not items or story.get("test_only"):
+        return {}        # test cards / samples are never re-scored (they would lose their label and a story with no items cannot be scored)
     r = score_story(story, items, now, trend_terms, cfg)
     first_pub = r["published_at"]
     orig = next((i for i in items if i["pub_known"]), items[0])
