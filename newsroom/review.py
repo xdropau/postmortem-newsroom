@@ -204,8 +204,9 @@ def apply_action(conn, action: str, ident: int, now, data_dir: str = "data", cfg
         if not r["ok"]:
             return _result(card_text(conn, ident, now, f"⛔ Cannot approve: {e(r['error'])}.\n"), keyboard(conn, ident), answer="Blocked")
         ids = [x["id"] for x in conn.execute("SELECT id FROM approvals WHERE id>? AND story_id=? AND action='approve' AND valid=1", (before, ident))]
-        tok = _undo_token(conn, now, "approve", ident, {"approval_ids": ids})
-        return _result(f"✅ <b>Approved</b> · {uid}\n{head}\nIt goes to the website feed within about 5 minutes, with its sources and archived copies.\nYou can undo this for {UNDO_MINUTES} minutes.",
+        sh = _shopify_on_approve(conn, ident)
+        tok = _undo_token(conn, now, "approve", ident, {"approval_ids": ids, "shopify": sh.get("prev")})
+        return _result(f"✅ <b>Approved</b> · {uid}\n{head}\nIt goes to the website feed within about 5 minutes, with its sources and archived copies.\n{sh['note']}\nYou can undo this for {UNDO_MINUTES} minutes.",
                        undo_keyboard(tok), dirty=True, answer="Approved")
 
     if action == "reject":
@@ -237,6 +238,29 @@ def apply_action(conn, action: str, ident: int, now, data_dir: str = "data", cfg
     return _result("Unknown button.", answer="Unknown")
 
 
+def _shopify_on_approve(conn, sid: int) -> dict:
+    """After a real Approve tap: make the matching Shopify article Visible with the pm-approved tag. Never blocks the approval."""
+    try:
+        from . import shopify
+        r = shopify.approve_sync(conn, sid)
+    except Exception as ex:  # noqa: BLE001
+        return {"prev": None, "note": f"Shopify article not changed ({type(ex).__name__})."}
+    if r.get("changed"):
+        return {"prev": r["prev"], "note": "The matching Shopify article is now Visible with the pm-approved tag."}
+    return {"prev": None, "note": "Shopify article not changed: " + r.get("why", "unknown") + "."}
+
+
+def _undo_shopify(d: dict) -> str:
+    if not d.get("shopify"):
+        return ""
+    try:
+        from . import shopify
+        r = shopify.undo_sync(d["shopify"])
+    except Exception as ex:  # noqa: BLE001
+        return f" Shopify article NOT restored ({type(ex).__name__}); check it in Shopify."
+    return " The Shopify article is back to how it was." if r.get("changed") else " Shopify article not restored: " + r.get("why", "unknown") + "."
+
+
 def _undo(conn, token: int, now) -> dict:
     raw = kv_get(conn, f"undo:{token}")
     if not raw:
@@ -247,6 +271,7 @@ def _undo(conn, token: int, now) -> dict:
     if now - parse_iso(u["at"]) > timedelta(minutes=UNDO_MINUTES):
         return _result(f"⏱ Too late to undo: more than {UNDO_MINUTES} minutes have passed. Use the card to change the story.", answer="Too late")
     sid, d, act = u["sid"], u["data"], u["action"]
+    shop_note = ""
     if act == "lvapprove":
         conn.execute("UPDATE live_updates SET status='draft', approved_at=NULL, approved_hash=NULL WHERE id=?", (sid,))
         conn.commit()
@@ -258,6 +283,7 @@ def _undo(conn, token: int, now) -> dict:
         conn.execute("INSERT INTO approvals(story_id,kind,action,reason,at,valid) VALUES(?,?,?,?,?,0)", (sid, "story", "undo", "owner undid the approval", iso(now)))
         ed._sync_story_status(conn, sid)
         conn.commit()
+        shop_note = _undo_shopify(d)
     elif act == "reject":
         conn.execute("UPDATE stories SET editorial_status=? WHERE id=?", (d.get("prev") or "verifying", sid))
         conn.execute("INSERT INTO approvals(story_id,kind,action,reason,at,valid) VALUES(?,?,?,?,?,0)", (sid, "story", "reject_undone", "owner undid the rejection", iso(now)))
@@ -271,7 +297,7 @@ def _undo(conn, token: int, now) -> dict:
     u["done"] = True
     kv_set(conn, f"undo:{token}", json.dumps(u))
     label = "update" if act == "lvapprove" else ed.uid(sid)
-    return _result(f"↩ <b>Undone</b> ({act}) · {label}. Nothing is left changed.", None, dirty=True, answer="Undone")
+    return _result(f"↩ <b>Undone</b> ({act}) · {label}. Nothing is left changed.{shop_note}", None, dirty=True, answer="Undone")
 
 
 # ---------------------------------------------------------------- live updates

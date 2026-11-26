@@ -240,3 +240,69 @@ def unpublish_article(store: str, client_id: str, client_secret: str, handle: st
         raise ShopifyError(f"no article with the address name '{handle}'")
     r = c.gql("mutation($id: ID!, $a: ArticleUpdateInput!){ articleUpdate(id: $id, article: $a){ article{ id isPublished } userErrors{ message } } }", {"id": a["id"], "a": {"isPublished": False}})["articleUpdate"]
     return {"handle": handle, "published": bool(r["article"] and r["article"]["isPublished"]), "errors": [e["message"] for e in r["userErrors"]]}
+
+
+# ---------------------------------------------------------------- original video dates for the published posts
+def set_dates(store: str, client_id: str, client_secret: str, dates: dict, session=None) -> list[dict]:
+    """Set ONLY the publish date of already-published posts to the original YouTube date. Nothing else is sent."""
+    c = Client(store, get_token(store, client_id, client_secret, session), session)
+    out = []
+    for a in fetch_articles(c):
+        ids = youtube_ids((a.get("body") or "") + " " + " ".join(m["value"] for m in (a.get("metafields") or {}).get("nodes", [])))
+        vid = next((i for i in ids if i in dates), None)
+        if not vid or not a["isPublished"]:
+            continue
+        r = c.gql("mutation($id: ID!, $a: ArticleUpdateInput!){ articleUpdate(id: $id, article: $a){ article{ id publishedAt isPublished } userErrors{ message } } }",
+                  {"id": a["id"], "a": {"publishDate": dates[vid]}})["articleUpdate"]
+        out.append({"handle": a["handle"], "wanted": dates[vid], "now": (r["article"] or {}).get("publishedAt"), "errors": [e["message"] for e in r["userErrors"]]})
+    return out
+
+
+# ---------------------------------------------------------------- Approve in Telegram -> matching article becomes Visible + pm-approved
+def _client_from_env(session=None):
+    store, cid, sec = os.environ.get("SHOPIFY_STORE", ""), os.environ.get("SHOPIFY_CLIENT_ID", ""), os.environ.get("SHOPIFY_CLIENT_SECRET", "")
+    if not (store and cid and sec):
+        return None
+    return Client(store, get_token(store, cid, sec, session), session)
+
+
+def _article_handle(conn, sid: int) -> str:
+    row = conn.execute("SELECT ref FROM story_links WHERE story_id=? AND kind='article_url' ORDER BY id DESC LIMIT 1", (sid,)).fetchone()
+    if not row:
+        return ""
+    return (row["ref"] or "").split("?")[0].split("#")[0].rstrip("/").rsplit("/", 1)[-1]
+
+
+def approve_sync(conn, sid: int) -> dict:
+    """Called ONLY after a real Approve tap succeeded. Never for test_only items. Returns what changed (so Undo can reverse it)."""
+    from . import editorial as ed
+    if ed.is_test_only(conn, sid):
+        return {"changed": False, "why": "this is a test item: it never touches Shopify"}
+    handle = _article_handle(conn, sid)
+    if not handle:
+        return {"changed": False, "why": "no Shopify article is linked to this story"}
+    c = _client_from_env()
+    if c is None:
+        return {"changed": False, "why": "Shopify settings are not configured on this run"}
+    a = next((x for x in fetch_articles(c) if x["handle"] == handle), None)
+    if not a:
+        return {"changed": False, "why": f"no Shopify article named '{handle}'"}
+    prev = {"id": a["id"], "handle": handle, "published": bool(a["isPublished"]), "tags": list(a.get("tags") or [])}
+    tags = list(dict.fromkeys(prev["tags"] + ["pm-approved"]))
+    r = c.gql("mutation($id: ID!, $a: ArticleUpdateInput!){ articleUpdate(id: $id, article: $a){ article{ id isPublished } userErrors{ message } } }",
+              {"id": a["id"], "a": {"isPublished": True, "tags": tags}})["articleUpdate"]
+    if r["userErrors"]:
+        return {"changed": False, "why": "Shopify refused: " + "; ".join(e["message"] for e in r["userErrors"])[:120]}
+    return {"changed": True, "prev": prev}
+
+
+def undo_sync(prev: dict) -> dict:
+    """Put the article back exactly as it was before the Approve tap (tags and Visible/Hidden)."""
+    c = _client_from_env()
+    if c is None:
+        return {"changed": False, "why": "Shopify settings are not configured on this run"}
+    r = c.gql("mutation($id: ID!, $a: ArticleUpdateInput!){ articleUpdate(id: $id, article: $a){ article{ id isPublished } userErrors{ message } } }",
+              {"id": prev["id"], "a": {"isPublished": bool(prev["published"]), "tags": prev["tags"]}})["articleUpdate"]
+    if r["userErrors"]:
+        return {"changed": False, "why": "Shopify refused: " + "; ".join(e["message"] for e in r["userErrors"])[:120]}
+    return {"changed": True}
