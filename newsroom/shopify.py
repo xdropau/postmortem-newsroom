@@ -209,13 +209,16 @@ def audit_articles(store: str, client_id: str, client_secret: str, session=None,
     return [check_article(a, link_ok) for a in fetch_articles(c)]
 
 
-def publish_articles(store: str, client_id: str, client_secret: str, session=None, link_ok=youtube_ok) -> list[dict]:
+def publish_articles(store: str, client_id: str, client_secret: str, session=None, link_ok=youtube_ok, only_videos: set | None = None) -> list[dict]:
     """Publish ONLY the posts that pass every check, adding the pm-approved tag and keeping all existing tags.
     Title, text, dates and links are never sent, so they are never changed."""
     c = Client(store, get_token(store, client_id, client_secret, session), session)
     res = []
     for a in fetch_articles(c):
         chk = check_article(a, link_ok)
+        if only_videos is not None and not (set(chk["youtube"]) & only_videos):
+            res.append(dict(chk, action="held back (not in the approved list)"))
+            continue
         if chk["problems"]:
             res.append(dict(chk, action="skipped"))
             continue

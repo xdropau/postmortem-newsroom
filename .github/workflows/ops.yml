@@ -7,7 +7,12 @@ on:
         description: "What to run"
         type: choice
         required: true
-        options: [audit, selftest, acceptance, briefing-force, testcard, linkwatch, samplecard, shopify-drafts-dry, shopify-drafts, shopify-selftest, shopify-list, shopify-audit, shopify-publish-checked]
+        options: [audit, selftest, acceptance, briefing-force, testcard, linkwatch, samplecard, shopify-drafts-dry, shopify-drafts, shopify-selftest, shopify-list, shopify-audit, shopify-publish-checked, shopify-publish-ids, shopify-hide]
+      arg:
+        description: "Optional: YouTube video ids (comma separated) for shopify-publish-ids, or an article address name for shopify-hide"
+        type: string
+        required: false
+
 concurrency:
   group: newsroom-data
   cancel-in-progress: false
@@ -25,6 +30,7 @@ jobs:
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
       TASK: ${{ inputs.task }}
+      ARG: ${{ inputs.arg }}
       SHOPIFY_STORE: ${{ vars.SHOPIFY_STORE }}
       SHOPIFY_CLIENT_ID: ${{ secrets.SHOPIFY_CLIENT_ID }}
       SHOPIFY_CLIENT_SECRET: ${{ secrets.SHOPIFY_CLIENT_SECRET }}
@@ -50,6 +56,8 @@ jobs:
             shopify-selftest) python -m newsroom shopify-drafts selftest ;;
             shopify-list) python -m newsroom shopify-drafts list ;;
             shopify-audit) python -m newsroom shopify-drafts audit ;;
+            shopify-publish-ids) python -m newsroom shopify-drafts "publish:$ARG" ;;
+            shopify-hide) python -m newsroom shopify-drafts "hide:$ARG" ;;
             shopify-publish-checked) python -m newsroom shopify-drafts publish ;;
             linkwatch) python -m newsroom linkwatch ;;
           esac

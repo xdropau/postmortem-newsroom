@@ -70,12 +70,14 @@ def main(argv=None) -> int:
         if not (store and cid and sec):
             print("Shopify settings missing: add SHOPIFY_STORE (variable), SHOPIFY_CLIENT_ID and SHOPIFY_CLIENT_SECRET (secrets).")
             return 3
-        if a.arg in ("audit", "publish") or (a.arg or "").startswith("hide:"):
+        if a.arg in ("audit", "publish") or (a.arg or "").startswith(("hide:", "publish:")):
             try:
                 if a.arg == "audit":
                     rows = shopify.audit_articles(store, cid, sec)
                 elif a.arg == "publish":
                     rows = shopify.publish_articles(store, cid, sec)
+                elif a.arg.startswith("publish:"):
+                    rows = shopify.publish_articles(store, cid, sec, only_videos=set(a.arg.split(":", 1)[1].split(",")))
                 else:
                     rows = [shopify.unpublish_article(store, cid, sec, a.arg.split(":", 1)[1])]
             except shopify.ShopifyError as ex:
