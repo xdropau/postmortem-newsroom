@@ -10,7 +10,7 @@ from .config import load_all
 from .cycle import run_cycle, record_run
 from .db import connect
 from .notify import Notifier
-from .util import utcnow
+from .util import iso, utcnow
 
 
 def _backup_cmds(a, data_dir) -> int:
@@ -99,12 +99,20 @@ def main(argv=None) -> int:
         for r in rows:
             print(f"{r['status']:10} {r['id']:22} entries={r['entries']:3} newest={r['newest_age']}")
     elif a.cmd == "selftest":
-        print(json.dumps(tools.selftest(conn, cfg, n, now), default=str, indent=1))
+        res = tools.selftest(conn, cfg, n, now)
+        print(json.dumps(res, default=str, indent=1))
+        flat = {k: v for k, v in res.items() if isinstance(v, bool)}
+        failed = [k for k, v in flat.items() if v is False]
+        n.send_once(f"selftest:{iso(now)}", "selftest", f"{'✅' if not failed else '❌'} <b>Selftest</b>: {len(flat) - len(failed)}/{len(flat)} checks passed." + (f" Failed: {', '.join(failed)}" if failed else ""), now)
     elif a.cmd == "acceptance":
         ok, rows = tools.acceptance(conn, cfg, now)
         for name, passed, detail in rows:
             print(f"{'PASS' if passed else 'FAIL'}  {name}  [{detail}]")
         print("\nSYSTEM OPERATIONAL: " + ("YES" if ok else "NO - do not claim operational until every line passes"))
+        from .notify import e as _e
+        bad = [f"{_e(nm)} [{_e(dt)}]" for nm, passed, dt in rows if not passed]
+        n.send_once(f"acceptance:{iso(now)}", "acceptance", f"{'✅' if ok else '❌'} <b>Final acceptance</b>: {len(rows) - len(bad)}/{len(rows)} passed. "
+                    + ("System operational." if ok else "NOT operational. Failing:\n" + "\n".join(bad)), now)
         return 0 if ok else 2
     elif a.cmd == "metrics":
         print(json.dumps(editorial.latency_metrics(conn), indent=1))
