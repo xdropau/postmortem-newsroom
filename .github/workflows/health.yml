@@ -9,6 +9,7 @@ concurrency:
   cancel-in-progress: false
 permissions:
   contents: write   # only to publish the ENCRYPTED dashboard to the gh-pages branch
+  actions: write    # only to restart the button watcher if it has stopped
 jobs:
   health:
     runs-on: ubuntu-latest
@@ -44,6 +45,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bash scripts/publish_site.sh
+      - name: Check the button watcher is running
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python -m newsroom tapwatch-check
       - name: Save data
         if: always()
         run: bash scripts/data_push.sh

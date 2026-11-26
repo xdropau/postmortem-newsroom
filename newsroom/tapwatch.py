@@ -58,6 +58,41 @@ def step(sess, token: str, chat_id: str, seen: set, dispatch) -> int:
     return len(fresh)
 
 
+def gh(method: str, path: str, **kw):
+    tok = os.environ.get("GITHUB_TOKEN")
+    return requests.request(method, f"https://api.github.com/repos/{os.environ.get('GITHUB_REPOSITORY')}/{path}", timeout=15,
+                            headers={"Authorization": f"Bearer {tok}", "Accept": "application/vnd.github+json"}, **kw)
+
+
+def watcher_state(now, request=None, stale_minutes: int = 10) -> dict:
+    """{alive, idle_minutes}: alive when a tapwatch run is in progress, or queued behind one that just finished (handover)."""
+    from .util import parse_iso
+    request = request or (lambda: gh("GET", "actions/workflows/tapwatch.yml/runs?per_page=5").json().get("workflow_runs", []))
+    runs = request()
+    if any(r["status"] == "in_progress" for r in runs):
+        return {"alive": True, "idle_minutes": 0}
+    done = [r for r in runs if r["status"] == "completed"]
+    last = max((parse_iso(r["updated_at"]) for r in done), default=None)
+    idle = (now - last).total_seconds() / 60 if last else 9999
+    queued = any(r["status"] in ("queued", "waiting", "pending") for r in runs)
+    return {"alive": idle <= stale_minutes or (queued and idle <= stale_minutes * 2), "idle_minutes": round(idle)}
+
+
+def ensure_alive(notifier, now, request=None, start=None) -> str:
+    """Restart the watcher if it is not running, and tell the owner (once per hour) if it has been down for more than 10 minutes."""
+    try:
+        st = watcher_state(now, request)
+    except Exception as ex:  # noqa: BLE001 - never break the host workflow
+        return f"unknown ({type(ex).__name__})"
+    if st["alive"]:
+        return "alive"
+    (start or (lambda: gh("POST", "actions/workflows/tapwatch.yml/dispatches", json={"ref": "main"})))()
+    notifier.send_once(f"tapwatch-down:{now.strftime('%Y%m%d%H')}", "ops",
+                       f"🛠 <b>Button watcher was down</b> for about {st['idle_minutes']} minutes. Taps may have been slow. I have restarted it now; "
+                       "it checks again on every cycle and health run.", now)
+    return "restarted"
+
+
 def github_dispatch():
     repo, tok = os.environ.get("GITHUB_REPOSITORY"), os.environ.get("GITHUB_TOKEN")
     def go():
@@ -76,8 +111,21 @@ def main(minutes: float = 50, every: float = 2.0) -> int:
         return 0
     sess, seen, end, n = requests.Session(), set(), time.time() + minutes * 60, 0
     go = github_dispatch()
+    waiting = None
     while time.time() < end:
-        n += step(sess, token, chat, seen, go)
+        got = step(sess, token, chat, seen, go)
+        n += got
+        if got:
+            waiting = time.time()
+        elif waiting and time.time() - waiting > 90:       # the worker has not finished: say so and start it again (never silent)
+            waiting = None
+            try:
+                runs = gh("GET", "actions/workflows/taps.yml/runs?per_page=1").json().get("workflow_runs", [])
+                if not runs or runs[0]["status"] != "completed":
+                    sess.post(API.format(token=token, method="sendMessage"), json={"chat_id": chat, "text": "⚠️ GitHub is slow to start the worker. Your tap is still queued and will be processed; no need to tap again."}, timeout=15)
+                    go()
+            except Exception:  # noqa: BLE001
+                pass
         time.sleep(every)
     print(f"tapwatch finished; acknowledged {n}")
     return 0

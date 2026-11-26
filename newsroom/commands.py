@@ -201,5 +201,9 @@ def _tap(conn, notifier, cq, m, now) -> int:
             notifier.send_raw(r["text"], now, r["markup"])
         else:
             notifier.edit(m["message_id"], r["text"], r["markup"], now)
+            # the card was edited in place, which is easy to miss (or looks unchanged): always add a plain result message too
+            notifier.send_raw(f"{'⛔' if r['answer'].startswith(('Not yet', 'Blocked')) else '✅'} Result: {e(r['answer'] or 'done')}", now)
+    else:
+        notifier.send_raw(f"✅ Result: {e(r['answer'] or 'done')}", now)
     changelog.seal(conn)
     return 1

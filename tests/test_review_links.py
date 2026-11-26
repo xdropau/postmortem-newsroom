@@ -330,3 +330,20 @@ def test_tapwatch_answers_a_tap_at_once_and_starts_the_worker_without_confirming
     assert s.calls[1][1]["callback_query_id"] == "cb1" and "Working" in s.calls[1][1]["text"]
     assert "Approve (story 5)" in s.calls[2][1]["text"] and fired == [1]
     assert tapwatch.step(s, "T", "42", seen, lambda: fired.append(1)) == 0 and fired == [1]    # same tap is not acknowledged twice; strangers ignored
+
+
+def test_tap_always_gets_a_plain_result_message_and_dead_watcher_is_restarted_and_reported(db, tg, tmp_path):
+    from datetime import timedelta
+    from newsroom import commands, tapwatch
+    from conftest import NOW
+    n, t = tg
+    t.updates = [{"update_id": 1, "callback_query": {"id": "c", "data": "pm:noop:1", "message": {"chat": {"id": 42}, "message_id": 5}}}]
+    commands.poll(db, n, NOW)
+    assert any(x.startswith("✅ Result:") or x.startswith("⛔ Result:") for x in t.sent)      # visible even though the card is edited in place
+    runs = [{"status": "completed", "updated_at": (NOW - timedelta(minutes=25)).strftime("%Y-%m-%dT%H:%M:%SZ")}]
+    started = []
+    assert tapwatch.ensure_alive(n, NOW, lambda: runs, lambda: started.append(1)) == "restarted" and started
+    assert any("Button watcher was down" in x for x in t.sent)
+    assert tapwatch.ensure_alive(n, NOW, lambda: [{"status": "in_progress", "updated_at": ""}], lambda: started.append(2)) == "alive" and started == [1]
+    assert tapwatch.ensure_alive(n, NOW, lambda: runs, lambda: started.append(3)) == "restarted"
+    assert sum("Button watcher was down" in x for x in t.sent) == 1           # one alert per hour
