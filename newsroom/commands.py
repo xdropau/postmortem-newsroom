@@ -5,6 +5,7 @@ import json
 
 from . import changelog, editorial as ed, evidence, linkcheck, review, secondcheck
 import os
+import sys
 from .db import kv_get, kv_set
 from .notify import e
 from .util import iso
@@ -153,6 +154,10 @@ def poll(conn, notifier, now) -> int:
     offset = int(kv_get(conn, "tg_offset", "0"))
     res = notifier._call("getUpdates", {"offset": offset, "timeout": 0, "allowed_updates": ["message", "callback_query"]}, retries=1)
     n = 0
+    if not res.get("ok"):                         # say so in the log instead of silently handling nothing
+        print(f"getUpdates failed: {res.get('status') or res.get('error') or res.get('description')}", file=sys.stderr)
+    elif not res.get("result"):
+        print("getUpdates: no pending taps or messages")
     for u in res.get("result", []) if res.get("ok") else []:
         kv_set(conn, "tg_offset", u["update_id"] + 1)
         cq = u.get("callback_query")
