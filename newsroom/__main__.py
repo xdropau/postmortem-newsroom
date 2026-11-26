@@ -46,7 +46,7 @@ def main(argv=None) -> int:
     except Exception:  # noqa: BLE001
         pass
     p = argparse.ArgumentParser(prog="newsroom")
-    p.add_argument("cmd", choices=["cycle", "briefing", "health", "dashboard", "audit", "selftest", "acceptance", "package", "draft", "prune", "commands", "submit", "metrics", "export-evidence", "check-narration", "lead", "secondcheck", "evidence", "verify-log", "backup", "restore-test", "restore", "export-backup", "backup-retention", "site-export", "testcard", "linkwatch", "tapwatch-check", "samplecard"])
+    p.add_argument("cmd", choices=["cycle", "briefing", "health", "dashboard", "audit", "selftest", "acceptance", "package", "draft", "prune", "commands", "submit", "metrics", "export-evidence", "check-narration", "lead", "secondcheck", "evidence", "verify-log", "backup", "restore-test", "restore", "export-backup", "backup-retention", "site-export", "testcard", "linkwatch", "tapwatch-check", "samplecard", "shopify-drafts"])
     p.add_argument("arg", nargs="?")
     p.add_argument("--force", action="store_true")
     p.add_argument("--out", default="dashboard_out")
@@ -64,6 +64,24 @@ def main(argv=None) -> int:
         out["commands_handled"] = commands.poll(conn, n, now)
         print(json.dumps(out, default=str))
         return 0 if any(b["status"] != "error" for b in out["bots"]) else 1
+    if a.cmd == "shopify-drafts":
+        from . import shopify
+        store, cid, sec = os.environ.get("SHOPIFY_STORE", ""), os.environ.get("SHOPIFY_CLIENT_ID", ""), os.environ.get("SHOPIFY_CLIENT_SECRET", "")
+        if not (store and cid and sec):
+            print("Shopify settings missing: add SHOPIFY_STORE (variable), SHOPIFY_CLIENT_ID and SHOPIFY_CLIENT_SECRET (secrets).")
+            return 3
+        items = json.load(open("config/shopify_drafts.json", encoding="utf-8"))
+        try:
+            res = shopify.run(items, store, cid, sec, dry_run=(a.arg == "dry-run"))
+        except shopify.ShopifyError as ex:
+            print(f"STOPPED: {ex}")
+            n.send_raw(f"Shopify drafts stopped: {ex}", now)
+            return 3
+        print(json.dumps(res, ensure_ascii=False, indent=1))
+        word = "would be created" if res["dry_run"] else "created as DRAFT"
+        n.send_raw(f"Shopify drafts ({'dry run' if res['dry_run'] else 'real run'}) in blog '{res['blog']}': {len(res['created'])} {word}, "
+                   f"{len(res['skipped_existing'])} already there, {len(res['failed'])} failed. Nothing is published.", now)
+        return 0 if not res["failed"] else 2
     if a.cmd == "samplecard":
         from . import review
         print(review.send_sample_card(conn, n, now))

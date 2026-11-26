@@ -7,7 +7,7 @@ on:
         description: "What to run"
         type: choice
         required: true
-        options: [audit, selftest, acceptance, briefing-force, testcard, linkwatch, samplecard]
+        options: [audit, selftest, acceptance, briefing-force, testcard, linkwatch, samplecard, shopify-drafts-dry, shopify-drafts]
 concurrency:
   group: newsroom-data
   cancel-in-progress: false
@@ -25,6 +25,9 @@ jobs:
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
       TASK: ${{ inputs.task }}
+      SHOPIFY_STORE: ${{ vars.SHOPIFY_STORE }}
+      SHOPIFY_CLIENT_ID: ${{ secrets.SHOPIFY_CLIENT_ID }}
+      SHOPIFY_CLIENT_SECRET: ${{ secrets.SHOPIFY_CLIENT_SECRET }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -42,6 +45,8 @@ jobs:
             briefing-force) python -m newsroom briefing --force ;;
             testcard) python -m newsroom testcard ;;
             samplecard) python -m newsroom samplecard ;;
+            shopify-drafts-dry) python -m newsroom shopify-drafts dry-run ;;
+            shopify-drafts) python -m newsroom shopify-drafts ;;
             linkwatch) python -m newsroom linkwatch ;;
           esac
       - name: Save data
