@@ -16,7 +16,7 @@ from . import changelog
 
 KEEP_WEEKLY = 12
 TABLES = ["stories", "items", "claims", "approvals", "content_versions", "corrections", "evidence_archive", "second_checks",
-          "second_check_items", "change_log", "leads", "live_coverage", "live_updates", "story_links", "notifications"]
+          "second_check_items", "change_log", "leads", "live_coverage", "live_updates", "story_links", "story_notes", "notifications"]
 INCLUDE_DIRS = ["evidence", "packages", "exports"]
 
 
