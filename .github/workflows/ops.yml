@@ -7,7 +7,7 @@ on:
         description: "What to run"
         type: choice
         required: true
-        options: [audit, selftest, acceptance, briefing-force, testcard, linkwatch, samplecard, shopify-drafts-dry, shopify-drafts, shopify-selftest, shopify-list, shopify-audit, shopify-publish-checked, shopify-publish-ids, shopify-hide, shopify-dates, shopify-article-setup, story-record]
+        options: [audit, selftest, acceptance, briefing-force, testcard, linkwatch, samplecard, shopify-drafts-dry, shopify-drafts, shopify-selftest, shopify-list, shopify-audit, shopify-publish-checked, shopify-publish-ids, shopify-hide, shopify-dates, shopify-article-setup, story-record, owner-approve]
       arg:
         description: "Optional: YouTube video ids (comma separated) for shopify-publish-ids, or an article address name for shopify-hide"
         type: string
@@ -61,6 +61,7 @@ jobs:
             shopify-dates) python -m newsroom shopify-drafts dates ;;
             shopify-article-setup) python -m newsroom shopify-drafts "article-setup:$ARG" ;;
             story-record) python -m newsroom shopify-drafts "story-record:$ARG" ;;
+            owner-approve) python -m newsroom shopify-drafts "owner-approve:$ARG" ;;
             shopify-publish-checked) python -m newsroom shopify-drafts publish ;;
             linkwatch) python -m newsroom linkwatch ;;
           esac
