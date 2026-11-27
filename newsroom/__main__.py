@@ -84,8 +84,11 @@ def main(argv=None) -> int:
                     spec = json.load(open(os.path.join(data_dir, a.arg.split(":", 1)[1]), encoding="utf-8"))
                     rows = [storyrecord.record(conn, spec, now, data_dir, cfg)]
                 elif a.arg.startswith("set-youtube:"):
-                    _sid, _url = a.arg.split(":", 1)[1].split("|", 1)
-                    rows = [shopify.set_youtube(conn, int(_sid), _url)]
+                    _who, _url = a.arg.split(":", 1)[1].rsplit("|", 1)
+                    if _who.strip().isdigit():
+                        rows = [shopify.set_youtube(conn, int(_who), _url)]
+                    else:        # an article with no newsroom story: found by exact title in the Investigations blog
+                        rows = [shopify.set_youtube_by_title(_who, _url)]
                 elif a.arg.startswith("mojibake:"):
                     rows = shopify.mojibake(store, cid, sec, fix=a.arg.endswith(":fix")) or [{"garbled_runs": 0}]
                 elif a.arg.startswith("golive:"):

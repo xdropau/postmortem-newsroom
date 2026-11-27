@@ -9,7 +9,7 @@ on:
         required: true
         options: [audit, selftest, acceptance, briefing-force, testcard, linkwatch, samplecard, shopify-drafts-dry, shopify-drafts, shopify-selftest, shopify-list, shopify-audit, shopify-publish-checked, shopify-publish-ids, shopify-hide, shopify-dates, shopify-article-setup, story-record, owner-approve, golive, mojibake-scan, mojibake-fix, set-youtube]
       arg:
-        description: "Optional: YouTube video ids (comma separated) for shopify-publish-ids, or an article address name for shopify-hide, or STORYID|https://www.youtube.com/watch?v=ID for set-youtube"
+        description: "Optional: YouTube video ids (comma separated) for shopify-publish-ids, or an article address name for shopify-hide, or STORYID|https://www.youtube.com/watch?v=ID (or EXACT ARTICLE TITLE|URL) for set-youtube"
         type: string
         required: false
 

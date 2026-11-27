@@ -463,3 +463,38 @@ def set_youtube(conn, sid: int, url: str, session=None) -> dict:
     now_val = {x["key"]: x["value"] for x in (back.get("metafields") or {}).get("nodes", []) if x["namespace"] == "custom"}.get("youtube_url", "")
     return {"story_id": sid, "handle": handle, "youtube_url": now_val, "changed": True, "verified": now_val == url.strip(),
             "published": bool(back.get("isPublished")), "tags": back.get("tags")}
+
+
+def set_youtube_by_title(title: str, url: str, session=None) -> dict:
+    """Same single-metafield rule as set_youtube, for an article that has no newsroom story: found by EXACT title in the Investigations blog.
+    Sets only custom.youtube_url. Never changes body, summary, tags or visibility. Never overwrites a different value. Prints no handle or tags
+    (the Actions log of this public repo must not reveal a hidden article)."""
+    m = re.fullmatch(r"https://www\.youtube\.com/watch\?v=([A-Za-z0-9_-]{11})", (url or "").strip())
+    if not m:
+        raise ShopifyError("the link must look like https://www.youtube.com/watch?v=VIDEOID")
+    if not (title or "").strip():
+        raise ShopifyError("no title given")
+    if not youtube_ok(m.group(1)):
+        raise ShopifyError("YouTube does not show that video as public (oEmbed refused it); nothing was changed")
+    c = _client_from_env(session)
+    if c is None:
+        raise ShopifyError("Shopify settings are not configured on this run")
+    hits = [x for x in fetch_articles(c) if (x["title"] or "").strip().lower() == title.strip().lower() and (x.get("blog") or {}).get("handle") == "investigations"]
+    if not hits:
+        raise ShopifyError("no article with that exact title in the Investigations blog")
+    if len(hits) > 1:
+        raise ShopifyError(f"{len(hits)} articles share that title; nothing was changed")
+    a = hits[0]
+    cur = {x["key"]: x["value"] for x in (a.get("metafields") or {}).get("nodes", []) if x["namespace"] == "custom"}.get("youtube_url", "")
+    if cur.strip() == url.strip():
+        return {"title": a["title"], "youtube_url": cur, "changed": False, "why": "already set", "published": bool(a["isPublished"])}
+    if cur.strip():
+        raise ShopifyError(f"the article already has a different youtube_url ({cur[:80]}); not overwritten")
+    r = c.gql("mutation($m: [MetafieldsSetInput!]!){ metafieldsSet(metafields: $m){ metafields{ namespace key value } userErrors{ message } } }",
+              {"m": [{"ownerId": a["id"], "namespace": "custom", "key": "youtube_url", "type": "single_line_text_field", "value": url.strip()}]})["metafieldsSet"]
+    if r["userErrors"]:
+        raise ShopifyError("Shopify refused the metafield: " + "; ".join(e["message"] for e in r["userErrors"])[:150])
+    back = next((x for x in fetch_articles(c) if x["id"] == a["id"]), {})
+    now_val = {x["key"]: x["value"] for x in (back.get("metafields") or {}).get("nodes", []) if x["namespace"] == "custom"}.get("youtube_url", "")
+    return {"title": a["title"], "youtube_url": now_val, "changed": True, "verified": now_val == url.strip(), "published": bool(back.get("isPublished")),
+            "was_empty": True}
