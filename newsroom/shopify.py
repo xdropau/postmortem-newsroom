@@ -355,3 +355,27 @@ def article_setup(conn, spec: dict, now, session=None) -> dict:
     return {"story_id": sid, "created": cur is None, "article_id": art["id"], "handle": art["handle"], "status": "Hidden", "tags": art["tags"],
             "address": ref, "admin_url": "https://admin.shopify.com/store/" + (os.environ.get("SHOPIFY_STORE", "").split(".")[0]) + "/content/articles/" + art["id"].rsplit("/", 1)[-1],
             "link_result": lk, "approve_dry_run": dry, "notes": notes}
+
+
+def ensure_visible(conn, sid: int, session=None) -> dict:
+    """Idempotent: the linked article ends up Visible with pm-approved (a retry changes nothing twice). Returns its body for the live check."""
+    from . import editorial as ed
+    if ed.is_test_only(conn, sid):
+        return {"ok": False, "why": "this is a test item"}
+    handle = _article_handle(conn, sid)
+    if not handle:
+        return {"ok": False, "why": "no Shopify article is linked to this story"}
+    c = _client_from_env(session)
+    if c is None:
+        return {"ok": False, "why": "Shopify settings are not configured on this run"}
+    a = next((x for x in fetch_articles(c) if x["handle"] == handle), None)
+    if not a:
+        return {"ok": False, "why": f"no Shopify article named '{handle}'"}
+    tags = list(a.get("tags") or [])
+    if a["isPublished"] and "pm-approved" in tags:
+        return {"ok": True, "changed": False, "body": a.get("body") or "", "handle": handle}
+    r = c.gql("mutation($id: ID!, $a: ArticleUpdateInput!){ articleUpdate(id: $id, article: $a){ article{ id isPublished } userErrors{ message } } }",
+              {"id": a["id"], "a": {"isPublished": True, "tags": list(dict.fromkeys(tags + ["pm-approved"]))}})["articleUpdate"]
+    if r["userErrors"]:
+        return {"ok": False, "why": "Shopify refused: " + "; ".join(e["message"] for e in r["userErrors"])[:120]}
+    return {"ok": True, "changed": True, "body": a.get("body") or "", "handle": handle}

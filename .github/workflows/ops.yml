@@ -7,7 +7,7 @@ on:
         description: "What to run"
         type: choice
         required: true
-        options: [audit, selftest, acceptance, briefing-force, testcard, linkwatch, samplecard, shopify-drafts-dry, shopify-drafts, shopify-selftest, shopify-list, shopify-audit, shopify-publish-checked, shopify-publish-ids, shopify-hide, shopify-dates, shopify-article-setup, story-record, owner-approve]
+        options: [audit, selftest, acceptance, briefing-force, testcard, linkwatch, samplecard, shopify-drafts-dry, shopify-drafts, shopify-selftest, shopify-list, shopify-audit, shopify-publish-checked, shopify-publish-ids, shopify-hide, shopify-dates, shopify-article-setup, story-record, owner-approve, golive]
       arg:
         description: "Optional: YouTube video ids (comma separated) for shopify-publish-ids, or an article address name for shopify-hide"
         type: string
@@ -17,7 +17,7 @@ concurrency:
   group: newsroom-data
   cancel-in-progress: false
 permissions:
-  contents: read
+  contents: write   # only to publish the approved-only feed to the public site-data branch
 jobs:
   ops:
     runs-on: ubuntu-latest
@@ -29,6 +29,7 @@ jobs:
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
       TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       TASK: ${{ inputs.task }}
       ARG: ${{ inputs.arg }}
       SHOPIFY_STORE: ${{ vars.SHOPIFY_STORE }}
@@ -62,6 +63,7 @@ jobs:
             shopify-article-setup) python -m newsroom shopify-drafts "article-setup:$ARG" ;;
             story-record) python -m newsroom shopify-drafts "story-record:$ARG" ;;
             owner-approve) python -m newsroom shopify-drafts "owner-approve:$ARG" ;;
+            golive) python -m newsroom shopify-drafts "golive:$ARG" ;;
             shopify-publish-checked) python -m newsroom shopify-drafts publish ;;
             linkwatch) python -m newsroom linkwatch ;;
           esac

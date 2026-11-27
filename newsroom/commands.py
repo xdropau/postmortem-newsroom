@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 
-from . import changelog, editorial as ed, evidence, linkcheck, review, secondcheck
+from . import changelog, editorial as ed, evidence, golive, linkcheck, review, secondcheck
 import os
 import sys
 from .db import kv_get, kv_set
@@ -63,6 +63,10 @@ def handle(conn, text: str, now) -> str:
                 conn.execute("UPDATE stories SET editorial_status='ready' WHERE id=?", (sid,))
                 conn.commit()
             return f"Claim #{cid} set. Story status {refresh_status(conn, sid)}. " + ("All claims resolved: READY for approval." if ok else f"{len(out)} UNVERIFIED remain.")
+        if cmd == "/golive":      # the whole chain again: check, publish, verify. Exactly one reply.
+            if s and ed.is_test_only(conn, sid):
+                return "FAILED at step 1: this is a test item and can never go live. Send /golive " + str(sid) + " to retry."
+            return golive.run(conn, sid, now, os.environ.get("DATA_DIR", "data"))["message"]
         if cmd == "/secondcheck":
             secondcheck.run(conn, sid, now)
             secondcheck.write_part_e(conn, sid, os.environ.get("DATA_DIR", "data"))
@@ -187,6 +191,13 @@ def _tap(conn, notifier, cq, m, now) -> int:
     if len(parts) != 3 or parts[0] != "pm" or not parts[2].lstrip("-").isdigit():
         notifier.answer(cq["id"], "Unknown button")
         return 0
+    if parts[1] == "approve" and golive.applies(conn, int(parts[2])) and not review.is_test(conn.execute("SELECT * FROM stories WHERE id=?", (int(parts[2]),)).fetchone()):
+        # one end-to-end action and ONE message: LIVE: <address>, or FAILED at step <n>
+        notifier.answer(cq["id"], "Going live...")
+        res = golive.run(conn, int(parts[2]), now, os.environ.get("DATA_DIR", "data"))
+        notifier.send_raw(e(res["message"]), now)
+        changelog.seal(conn)
+        return 1
     try:
         r = review.apply_action(conn, parts[1], int(parts[2]), now, data_dir=os.environ.get("DATA_DIR", "data"))
     except Exception as ex:  # noqa: BLE001 - a failed tap must never stop the poll
