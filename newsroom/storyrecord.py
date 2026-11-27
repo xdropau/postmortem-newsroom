@@ -71,6 +71,10 @@ def record(conn, spec: dict, now, data_dir: str, cfg, get=http_get, wb=None) -> 
     have = {r["claim_text"] for r in conn.execute("SELECT claim_text FROM claims WHERE story_id=?", (sid,))}
     for f in spec["facts"]:
         text = f["text"] + (f" [{f['attrib']}]" if f.get("attrib") else "")
+        if f.get("replaces") and f["replaces"] in have and text not in have:      # a wording change: the recorded fact is edited, not duplicated
+            conn.execute("UPDATE claims SET claim_text=?, status='UNVERIFIED', checked_at=? WHERE story_id=? AND claim_text=?", (text, iso(now), sid, f["replaces"]))
+            have.discard(f["replaces"]); have.add(text)
+            continue
         if text in have:
             continue
         s = srcs[f["src"]]
