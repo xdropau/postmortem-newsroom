@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import html
 import json
+import os
 
 import requests
 
@@ -273,7 +274,7 @@ def _article_handle(conn, sid: int) -> str:
     return (row["ref"] or "").split("?")[0].split("#")[0].rstrip("/").rsplit("/", 1)[-1]
 
 
-def approve_sync(conn, sid: int) -> dict:
+def approve_sync(conn, sid: int, dry_run: bool = False) -> dict:
     """Called ONLY after a real Approve tap succeeded. Never for test_only items. Returns what changed (so Undo can reverse it)."""
     from . import editorial as ed
     if ed.is_test_only(conn, sid):
@@ -289,6 +290,9 @@ def approve_sync(conn, sid: int) -> dict:
         return {"changed": False, "why": f"no Shopify article named '{handle}'"}
     prev = {"id": a["id"], "handle": handle, "published": bool(a["isPublished"]), "tags": list(a.get("tags") or [])}
     tags = list(dict.fromkeys(prev["tags"] + ["pm-approved"]))
+    if dry_run:
+        return {"changed": False, "dry_run": True, "matched_article": handle, "currently": {"visible": prev["published"], "tags": prev["tags"]},
+                "on_approve_it_would_become": {"visible": True, "tags": tags}}
     r = c.gql("mutation($id: ID!, $a: ArticleUpdateInput!){ articleUpdate(id: $id, article: $a){ article{ id isPublished } userErrors{ message } } }",
               {"id": a["id"], "a": {"isPublished": True, "tags": tags}})["articleUpdate"]
     if r["userErrors"]:
@@ -306,3 +310,48 @@ def undo_sync(prev: dict) -> dict:
     if r["userErrors"]:
         return {"changed": False, "why": "Shopify refused: " + "; ".join(e["message"] for e in r["userErrors"])[:120]}
     return {"changed": True}
+
+
+# ---------------------------------------------------------------- a HIDDEN article for a real story, linked so the Approve tap can publish it
+def article_setup(conn, spec: dict, now, session=None) -> dict:
+    """Create (or update) the article for one story as HIDDEN, never tagged pm-approved; link it to the story; dry-run the Approve step.
+    Never publishes, never approves, refuses test_only stories."""
+    from . import editorial as ed
+    sid = int(spec["story_id"])
+    if ed.is_test_only(conn, sid):
+        raise ShopifyError("that story is a test item")
+    if not conn.execute("SELECT 1 FROM stories WHERE id=?", (sid,)).fetchone():
+        raise ShopifyError(f"story {sid} does not exist")
+    c = _client_from_env(session)
+    if c is None:
+        raise ShopifyError("Shopify settings are not configured on this run")
+    blog = find_blog(c)
+    tags = [t for t in spec.get("tags", []) if t.strip().lower() not in FORBIDDEN_TAGS]
+    meta = [{"namespace": "custom", "key": "sources", "type": "multi_line_text_field", "value": spec["sources_lines"]}]
+    cur = next((a for a in fetch_articles(c) if (a["title"] or "").strip().lower() == spec["title"].strip().lower()), None)
+    fields = {"title": spec["title"], "body": spec["body"], "summary": spec["summary"], "isPublished": False}
+    if cur:
+        fields["tags"] = list(dict.fromkeys([t for t in (cur.get("tags") or []) if t.lower() not in FORBIDDEN_TAGS] + tags))
+        q = "mutation($id: ID!, $a: ArticleUpdateInput!){ articleUpdate(id: $id, article: $a){ article{ id handle isPublished tags } userErrors{ message } } }"
+        key, var = "articleUpdate", {"id": cur["id"]}
+    else:
+        fields.update({"blogId": blog["id"], "author": {"name": "The Post-Mortem"}, "tags": tags})
+        q = "mutation($a: ArticleCreateInput!){ articleCreate(article: $a){ article{ id handle isPublished tags } userErrors{ message } } }"
+        key, var = "articleCreate", {}
+    notes = []
+    r = c.gql(q, dict(var, a=dict(fields, metafields=meta)))[key]
+    if r["userErrors"] and any("metafield" in e["message"].lower() for e in r["userErrors"]):
+        notes.append("source list metafield refused: " + "; ".join(e["message"] for e in r["userErrors"])[:100])
+        r = c.gql(q, dict(var, a=fields))[key]
+    if r["userErrors"] or not r["article"]:
+        raise ShopifyError("Shopify refused the article: " + "; ".join(e["message"] for e in r["userErrors"])[:150])
+    art = r["article"]
+    if art["isPublished"] or "pm-approved" in (art.get("tags") or []):
+        raise ShopifyError("safety stop: the article came back published or tagged; check Shopify now")
+    ref = f"https://thepostmortem.org/blogs/{blog['handle']}/{art['handle']}"
+    lk = ed.link_story(conn, sid, "article_url", ref, now)
+    conn.commit()
+    dry = approve_sync(conn, sid, dry_run=True)
+    return {"story_id": sid, "created": cur is None, "article_id": art["id"], "handle": art["handle"], "status": "Hidden", "tags": art["tags"],
+            "address": ref, "admin_url": "https://admin.shopify.com/store/" + (os.environ.get("SHOPIFY_STORE", "").split(".")[0]) + "/content/articles/" + art["id"].rsplit("/", 1)[-1],
+            "link_result": lk, "approve_dry_run": dry, "notes": notes}

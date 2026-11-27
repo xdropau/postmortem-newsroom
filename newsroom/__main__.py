@@ -70,10 +70,15 @@ def main(argv=None) -> int:
         if not (store and cid and sec):
             print("Shopify settings missing: add SHOPIFY_STORE (variable), SHOPIFY_CLIENT_ID and SHOPIFY_CLIENT_SECRET (secrets).")
             return 3
-        if a.arg in ("audit", "publish", "dates") or (a.arg or "").startswith(("hide:", "publish:")):
+        if a.arg in ("audit", "publish", "dates") or (a.arg or "").startswith(("hide:", "publish:", "article-setup:")):
             try:
                 if a.arg == "audit":
                     rows = shopify.audit_articles(store, cid, sec)
+                elif a.arg.startswith("article-setup:"):
+                    spec = json.load(open(os.path.join(data_dir, a.arg.split(":", 1)[1]), encoding="utf-8"))
+                    rows = [shopify.article_setup(conn, spec, now)]
+                    from . import changelog as _cl
+                    _cl.seal(conn)
                 elif a.arg == "dates":
                     rows = shopify.set_dates(store, cid, sec, json.load(open("config/shopify_dates.json", encoding="utf-8")))
                 elif a.arg == "publish":

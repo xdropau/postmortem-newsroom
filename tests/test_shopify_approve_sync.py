@@ -87,3 +87,41 @@ def test_set_dates_only_sends_the_publish_date(monkeypatch):
     monkeypatch.setattr(shopify, "Client", lambda store, token, session=None: fake)
     out = shopify.set_dates("s", "c", "x", {"5CpvqwJFaoA": "2026-11-23T00:10:51+00:00"})
     assert fake.updates == [{"publishDate": "2026-11-23T00:10:51+00:00"}] and out[0]["errors"] == []
+
+
+def test_article_setup_creates_a_hidden_untagged_article_links_it_and_dry_runs_approve(conn, monkeypatch):
+    class Fake(FakeClient):
+        def __init__(self):
+            super().__init__()
+            self.article = None
+            self.calls = []
+
+        def gql(self, query, variables=None):
+            self.calls.append(query)
+            if "blogs(" in query:
+                return {"blogs": {"nodes": [{"id": "gid://b/1", "title": "Investigations", "handle": "investigations"}]}}
+            if "articles(" in query:
+                return {"articles": {"nodes": [self.article] if self.article else [], "pageInfo": {"hasNextPage": False, "endCursor": None}}}
+            a = variables["a"]
+            self.article = {"id": "gid://shopify/Article/9", "title": a["title"], "handle": "company-director-sentenced", "isPublished": a["isPublished"], "publishedAt": None,
+                            "createdAt": "x", "updatedAt": "", "tags": a["tags"], "body": a["body"], "summary": "", "blog": {"handle": "investigations"}, "metafields": {"nodes": []}}
+            return {"articleCreate": {"article": {"id": "gid://shopify/Article/9", "handle": "company-director-sentenced", "isPublished": a["isPublished"], "tags": a["tags"]}, "userErrors": []}}
+    fake = Fake()
+    monkeypatch.setattr(shopify, "_client_from_env", lambda session=None: fake)
+    mk(conn, sid=2302, headline="Company director sentenced after liquidators unable to verify more than 1 million")
+    spec = {"story_id": 2302, "title": "Company Director Sentenced", "summary": "<p>s</p>", "body": "<p>b</p>", "tags": ["Crime and Society", "pm-approved"], "sources_lines": "A | https://x"}
+    out = shopify.article_setup(conn, spec, NOW)
+    assert out["status"] == "Hidden" and fake.article["isPublished"] is False and "pm-approved" not in fake.article["tags"]
+    assert out["address"].endswith("/blogs/investigations/company-director-sentenced")
+    assert conn.execute("SELECT ref FROM story_links WHERE story_id=2302 AND kind='article_url'").fetchone()["ref"] == out["address"]
+    d = out["approve_dry_run"]
+    assert d["dry_run"] and d["currently"]["visible"] is False and d["on_approve_it_would_become"]["visible"] is True and "pm-approved" in d["on_approve_it_would_become"]["tags"]
+    # a dry run changes nothing
+    assert fake.article["isPublished"] is False and "pm-approved" not in fake.article["tags"]
+    # test_only stories are refused outright
+    tid = review.ensure_test_card(conn, NOW)
+    try:
+        shopify.article_setup(conn, dict(spec, story_id=tid), NOW)
+        raise AssertionError("should have refused")
+    except shopify.ShopifyError as e:
+        assert "test item" in str(e)
