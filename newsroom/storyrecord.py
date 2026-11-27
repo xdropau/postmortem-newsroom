@@ -60,6 +60,9 @@ def record(conn, spec: dict, now, data_dir: str, cfg, get=http_get, wb=None) -> 
                 log["sources"][s["key"]] = f"archive copy did not open: {type(ex).__name__}"
         else:
             rows = evidence.archive_story(conn, sid, now, data_dir, cfg, get=get, wb=wb or evidence.wayback, urls_override=[s["url"]], max_wayback=1)
+            if rows[0].get("wayback_url"):       # a retry that finally got a capture: fill it into the existing record
+                conn.execute("UPDATE evidence_archive SET wayback_url=?, wayback_status=? WHERE story_id=? AND url=? AND wayback_url IS NULL",
+                             (rows[0]["wayback_url"], rows[0]["wayback_status"], sid, s["url"]))
             conn.execute("UPDATE evidence_archive SET issuer=?, published_at=? WHERE story_id=? AND url=?",
                          (s["publisher"], s.get("published") or None, sid, s["url"]))
             log["sources"][s["key"]] = f"HTTP {rows[0]['http_status']}, archive: {rows[0]['wayback_status'] or 'none'}"

@@ -108,7 +108,7 @@ def run(conn, sid: int, now, data_dir: str = "data", cfg=None, get=http_get, wb=
             continue
         if url not in fetched:
             try:
-                r = get(url, timeout=25, retries=1)
+                r = get(url, timeout=(60 if "web.archive.org" in url else 25), retries=(2 if "web.archive.org" in url else 1))
                 fetched[url] = (r.status_code, _page_text(r), True)
             except FetchError as ex:
                 fetched[url] = (f"HTTP {ex.status}" if ex.status else "no response", "", False)
