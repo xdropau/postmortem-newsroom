@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import os
 
-from . import changelog, evidence, linkcheck
+from . import changelog, evidence, linkcheck, secondcheck
 from .fetch import http_get
 from .util import iso, sha256_bytes, strip_html
 
@@ -88,6 +88,14 @@ def record(conn, spec: dict, now, data_dir: str, cfg, get=http_get, wb=None) -> 
             _note(conn, sid, kind, t, now)
             log["notes_added"] += 1
     conn.commit()
+    # 3b. owner asked for the second check to be reset: a new run that is NOT a pass, so the human (or a fresh check) must settle it
+    if spec.get("reset_second_check"):
+        last = secondcheck.latest_run(conn, sid)
+        if not last or last["by"] != "owner-reset":
+            secondcheck.store(conn, sid, [{"key": "owner_reset", "label": "Second check", "claim": "A person has done the second check",
+                                          "result": "UNCLEAR", "evidence": "Reset on the owner's instruction: the earlier result was an automatic read of one page. Waiting for Mo.",
+                                          "material": 1}], now, "owner-reset", 0)
+            log["second_check_reset"] = True
     # 4. the REAL link check (opens every cited link, checks the cited text and the archived copy)
     res = linkcheck.run(conn, sid, now, data_dir, cfg, get=get, wb=wb or evidence.wayback)
     claims = {c["id"]: c for c in linkcheck.claims_with_urls(conn, sid)}
