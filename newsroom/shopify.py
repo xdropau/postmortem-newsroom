@@ -379,3 +379,50 @@ def ensure_visible(conn, sid: int, session=None) -> dict:
     if r["userErrors"]:
         return {"ok": False, "why": "Shopify refused: " + "; ".join(e["message"] for e in r["userErrors"])[:120]}
     return {"ok": True, "changed": True, "body": a.get("body") or "", "handle": handle}
+
+
+# ---------------------------------------------------------------- garbled characters (UTF-8 text that was read as Windows-1252)
+import re as _re
+
+_GARBLE = _re.compile("[ÃÂâ][-¿€™œ‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜š›žŸ]+")
+
+
+def fix_garble(text: str) -> tuple[str, int]:
+    """Repair each garbled run (e.g. 'â€™' -> '’') only when it decodes cleanly; anything that does not is left alone. Returns (text, runs fixed)."""
+    n = 0
+
+    def one(m):
+        nonlocal n
+        try:
+            fixed = m.group(0).encode("cp1252").decode("utf-8")
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            return m.group(0)
+        n += 1
+        return fixed
+    return _GARBLE.sub(one, text or ""), n
+
+
+def mojibake(store: str, client_id: str, secret: str, fix: bool = False, session=None) -> list[dict]:
+    """Find (and with fix=True repair, in Shopify itself) garbled characters in every article's title, standfirst, body and tags.
+    Only the fields that change are sent; Visible/Hidden, tags and dates are never touched."""
+    c = Client(store, get_token(store, client_id, secret, session), session)
+    out = []
+    for a in fetch_articles(c):
+        change, found = {}, 0
+        for key in ("title", "body", "summary"):
+            new, n = fix_garble(a.get(key) or "")
+            if n:
+                change[key], found = new, found + n
+        tags = [fix_garble(t) for t in (a.get("tags") or [])]
+        if any(n for _, n in tags):
+            change["tags"] = [t for t, _ in tags]
+            found += sum(n for _, n in tags)
+        if not found:
+            continue
+        row = {"handle": a["handle"], "fields": sorted(change), "garbled_runs": found, "fixed": False}
+        if fix:
+            r = c.gql("mutation($id: ID!, $a: ArticleUpdateInput!){ articleUpdate(id: $id, article: $a){ article{ id } userErrors{ message } } }", {"id": a["id"], "a": change})["articleUpdate"]
+            row["fixed"] = not r["userErrors"]
+            row["errors"] = [e["message"] for e in r["userErrors"]]
+        out.append(row)
+    return out

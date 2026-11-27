@@ -70,7 +70,7 @@ def main(argv=None) -> int:
         if not (store and cid and sec):
             print("Shopify settings missing: add SHOPIFY_STORE (variable), SHOPIFY_CLIENT_ID and SHOPIFY_CLIENT_SECRET (secrets).")
             return 3
-        if a.arg in ("audit", "publish", "dates") or (a.arg or "").startswith(("hide:", "publish:", "article-setup:", "story-record:", "owner-approve:", "golive:")):
+        if a.arg in ("audit", "publish", "dates") or (a.arg or "").startswith(("hide:", "publish:", "article-setup:", "story-record:", "owner-approve:", "golive:", "mojibake:")):
             try:
                 if a.arg == "audit":
                     rows = shopify.audit_articles(store, cid, sec)
@@ -83,6 +83,8 @@ def main(argv=None) -> int:
                     from . import storyrecord
                     spec = json.load(open(os.path.join(data_dir, a.arg.split(":", 1)[1]), encoding="utf-8"))
                     rows = [storyrecord.record(conn, spec, now, data_dir, cfg)]
+                elif a.arg.startswith("mojibake:"):
+                    rows = shopify.mojibake(store, cid, sec, fix=a.arg.endswith(":fix")) or [{"garbled_runs": 0}]
                 elif a.arg.startswith("golive:"):
                     from . import golive as _gl, changelog as _cl
                     gres = _gl.run(conn, int(a.arg.split(":", 1)[1]), now, data_dir)

@@ -135,3 +135,10 @@ def test_checklist_does_not_crash_for_a_story_with_no_claims_after_a_link_run(co
     lc.run(conn, 77, NOW, str(tmp_path), get=FakeWeb({}), wb=lambda u: ("", "offline"))
     cl = review.checklist(conn, 77)                       # used to raise IndexError
     assert cl["flags"]["links"] is False and "nothing to check" in cl["why"]["links"]
+
+
+def test_garbled_characters_are_repaired_only_when_they_decode_cleanly():
+    bad = "Australianâ€™s â€” and a stray Ã that is not a pair"
+    fixed, n = shopify.fix_garble(bad)
+    assert fixed.startswith("Australian’s —") and n == 2 and "Ã" in fixed
+    assert shopify.fix_garble("Already clean: it’s fine")[1] == 0
