@@ -7,9 +7,9 @@ on:
         description: "What to run"
         type: choice
         required: true
-        options: [audit, selftest, acceptance, briefing-force, testcard, linkwatch, samplecard, shopify-drafts-dry, shopify-drafts, shopify-selftest, shopify-list, shopify-audit, shopify-publish-checked, shopify-publish-ids, shopify-hide, shopify-dates, shopify-article-setup, story-record, owner-approve, golive, mojibake-scan, mojibake-fix]
+        options: [audit, selftest, acceptance, briefing-force, testcard, linkwatch, samplecard, shopify-drafts-dry, shopify-drafts, shopify-selftest, shopify-list, shopify-audit, shopify-publish-checked, shopify-publish-ids, shopify-hide, shopify-dates, shopify-article-setup, story-record, owner-approve, golive, mojibake-scan, mojibake-fix, set-youtube]
       arg:
-        description: "Optional: YouTube video ids (comma separated) for shopify-publish-ids, or an article address name for shopify-hide"
+        description: "Optional: YouTube video ids (comma separated) for shopify-publish-ids, or an article address name for shopify-hide, or STORYID|https://www.youtube.com/watch?v=ID for set-youtube"
         type: string
         required: false
 
@@ -64,6 +64,7 @@ jobs:
             story-record) python -m newsroom shopify-drafts "story-record:$ARG" ;;
             owner-approve) python -m newsroom shopify-drafts "owner-approve:$ARG" ;;
             golive) python -m newsroom shopify-drafts "golive:$ARG" ;;
+            set-youtube) python -m newsroom shopify-drafts "set-youtube:$ARG" ;;
             mojibake-scan) python -m newsroom shopify-drafts "mojibake:scan" ;;
             mojibake-fix) python -m newsroom shopify-drafts "mojibake:fix" ;;
             shopify-publish-checked) python -m newsroom shopify-drafts publish ;;
