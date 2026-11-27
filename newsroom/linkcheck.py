@@ -175,6 +175,8 @@ def gate(conn, sid: int, now=None) -> tuple[bool, str]:
     if sm["sig"] != claims_sig(conn, sid):
         return False, "the facts changed since the links were checked"
     if not sm["ok"]:
+        if not sm["failed"]:
+            return False, "no facts with source links are recorded yet, so there is nothing to check"
         f = sm["failed"][0]
         return False, f"{len(sm['failed'])} link(s) failed (e.g. {f['url'][:60] or 'a fact with no link'}: {f['reason']})"
     if now is not None and (now - parse_iso(sm["at"])) > timedelta(minutes=FRESH_MINUTES):

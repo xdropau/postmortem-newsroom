@@ -125,3 +125,13 @@ def test_article_setup_creates_a_hidden_untagged_article_links_it_and_dry_runs_a
         raise AssertionError("should have refused")
     except shopify.ShopifyError as e:
         assert "test item" in str(e)
+
+
+def test_checklist_does_not_crash_for_a_story_with_no_claims_after_a_link_run(conn, tmp_path):
+    from newsroom import linkcheck as lc
+    mk(conn, sid=77, headline="A story with no recorded facts at all", status="new")
+    conn.execute("DELETE FROM claims WHERE story_id=77")
+    conn.commit()
+    lc.run(conn, 77, NOW, str(tmp_path), get=FakeWeb({}), wb=lambda u: ("", "offline"))
+    cl = review.checklist(conn, 77)                       # used to raise IndexError
+    assert cl["flags"]["links"] is False and "nothing to check" in cl["why"]["links"]
