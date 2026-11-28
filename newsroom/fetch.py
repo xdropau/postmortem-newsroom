@@ -154,6 +154,33 @@ def parse_html_list(content: bytes, src: dict) -> list[dict]:
     return out
 
 
+def parse_telegram_preview(content: bytes, src: dict) -> list[dict]:
+    """A PUBLIC Telegram channel's web preview (t.me/s/<channel>, readable without login). Each message becomes a lead item: the text is the
+    headline, the permalink is the link. Only channels that expose a preview work; a channel without one is a failure, never worked around."""
+    page = content.decode("utf-8", "replace")
+    min_chars = int(src.get("min_chars", 40))
+    out = []
+    for blk in re.split(r'<div class="tgme_widget_message_wrap', page)[1:]:
+        post = re.search(r'data-post="([A-Za-z0-9_]+/\d+)"', blk)
+        text = re.search(r'<div class="tgme_widget_message_text[^>]*>(.*?)</div>', blk, re.S)
+        when = re.search(r'<time[^>]*datetime="([^"]+)"', blk)
+        if not (post and text):
+            continue
+        title = strip_html(text.group(1), 300)
+        if len(title) < min_chars:
+            continue
+        try:
+            pub = datetime.fromisoformat(when.group(1)).astimezone(timezone.utc) if when else None
+        except ValueError:
+            pub = None
+        out.append({"title": title, "url": "https://t.me/" + post.group(1), "summary": "", "published_at": pub, "org": src["org"],
+                    "source_id": src["id"], "bot": src["bot"], "tier": src.get("tier", "trend"), "has_image": False, "links": [],
+                    "tags": _tags(src)})
+    if not out:
+        raise FetchError("no public preview messages found (the channel has no web preview)")
+    return out[-int(src.get("max_items", 15)):][::-1]
+
+
 def _tags(src: dict) -> str:
     t = []
     if src.get("tier") == "primary" or src.get("official"):
@@ -162,16 +189,23 @@ def _tags(src: dict) -> str:
         t.append("via-google-news")
     if src.get("html_list"):
         t.append("press-page")
+    if src.get("telegram_preview"):
+        t.append("telegram-preview")
     return ",".join(t)
 
 
 def fetch_items(src: dict, get=None) -> tuple[list[dict], int]:
     """Fetch one configured source (feed, press page or Google News feed) and return (items, http status)."""
     get = get or http_get
-    if src.get("html_list") and not robots_allowed(src["url"], get):
+    if (src.get("html_list") or src.get("telegram_preview")) and not robots_allowed(src["url"], get):
         raise FetchError("robots.txt disallows polling this page", 403)
     r = get(src["url"])
-    items = parse_html_list(r.content, src) if src.get("html_list") else parse_feed(r.content, src)
+    if src.get("telegram_preview"):
+        if r.history and "/s/" not in r.url:         # t.me redirects a channel with no web preview to its landing page
+            raise FetchError("the channel has no public web preview", 302)
+        items = parse_telegram_preview(r.content, src)
+    else:
+        items = parse_html_list(r.content, src) if src.get("html_list") else parse_feed(r.content, src)
     return items, r.status_code
 
 

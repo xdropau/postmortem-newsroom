@@ -6,56 +6,64 @@
       "org": "BBC",
       "bot": "radar",
       "tier": "outlet",
-      "url": "https://feeds.bbci.co.uk/news/rss.xml"
+      "url": "https://feeds.bbci.co.uk/news/rss.xml",
+      "region": "United Kingdom"
     },
     {
       "id": "bbc-business",
       "org": "BBC",
       "bot": "radar",
       "tier": "outlet",
-      "url": "https://feeds.bbci.co.uk/news/business/rss.xml"
+      "url": "https://feeds.bbci.co.uk/news/business/rss.xml",
+      "region": "United Kingdom"
     },
     {
       "id": "bbc-tech",
       "org": "BBC",
       "bot": "radar",
       "tier": "outlet",
-      "url": "https://feeds.bbci.co.uk/news/technology/rss.xml"
+      "url": "https://feeds.bbci.co.uk/news/technology/rss.xml",
+      "region": "United Kingdom"
     },
     {
       "id": "guardian-world",
       "org": "The Guardian",
       "bot": "radar",
       "tier": "outlet",
-      "url": "https://www.theguardian.com/world/rss"
+      "url": "https://www.theguardian.com/world/rss",
+      "region": "United Kingdom"
     },
     {
       "id": "guardian-business",
       "org": "The Guardian",
       "bot": "radar",
       "tier": "outlet",
-      "url": "https://www.theguardian.com/business/rss"
+      "url": "https://www.theguardian.com/business/rss",
+      "region": "United Kingdom"
     },
     {
       "id": "guardian-tech",
       "org": "The Guardian",
       "bot": "radar",
       "tier": "outlet",
-      "url": "https://www.theguardian.com/technology/rss"
+      "url": "https://www.theguardian.com/technology/rss",
+      "region": "United Kingdom"
     },
     {
       "id": "guardian-au",
       "org": "The Guardian",
       "bot": "radar",
       "tier": "outlet",
-      "url": "https://www.theguardian.com/australia-news/rss"
+      "url": "https://www.theguardian.com/australia-news/rss",
+      "region": "Australia"
     },
     {
       "id": "cnbc-top",
       "org": "CNBC",
       "bot": "radar",
       "tier": "outlet",
-      "url": "https://www.cnbc.com/id/100003114/device/rss/rss.html"
+      "url": "https://www.cnbc.com/id/100003114/device/rss/rss.html",
+      "region": "United States"
     },
     {
       "id": "abc-au-top",
@@ -63,14 +71,16 @@
       "bot": "radar",
       "tier": "outlet",
       "url": "https://www.abc.net.au/news/feed/51120/rss.xml",
-      "verify": true
+      "verify": true,
+      "region": "Australia"
     },
     {
       "id": "aljazeera",
       "org": "Al Jazeera",
       "bot": "radar",
       "tier": "outlet",
-      "url": "https://www.aljazeera.com/xml/rss/all.xml"
+      "url": "https://www.aljazeera.com/xml/rss/all.xml",
+      "region": "Middle East"
     },
     {
       "id": "ft-home",
@@ -79,7 +89,8 @@
       "tier": "outlet",
       "url": "https://www.ft.com/rss/home/international",
       "headlines_only": true,
-      "headlines_only_reason": "Feed works. FT article pages are paywalled and refuse automated clients (HTTP 403); we use headlines and links only and never fetch article bodies."
+      "headlines_only_reason": "Feed works. FT article pages are paywalled and refuse automated clients (HTTP 403); we use headlines and links only and never fetch article bodies.",
+      "region": "United Kingdom"
     },
     {
       "id": "bloomberg-markets",
@@ -88,7 +99,8 @@
       "tier": "outlet",
       "url": "https://www.bloomberg.com/feeds/markets/news.rss",
       "headlines_only": true,
-      "headlines_only_reason": "Feed works. Bloomberg article pages are paywalled and refuse automated clients (HTTP 403); headlines and links only."
+      "headlines_only_reason": "Feed works. Bloomberg article pages are paywalled and refuse automated clients (HTTP 403); headlines and links only.",
+      "region": "United States"
     },
     {
       "id": "reuters-gn",
@@ -98,7 +110,8 @@
       "google_news": true,
       "max_items": 30,
       "url": "https://news.google.com/rss/search?q=site:reuters.com+when:3h&hl=en-US&gl=US&ceid=US:en",
-      "verify": true
+      "verify": true,
+      "region": "Global"
     },
     {
       "id": "ap-gn",
@@ -108,7 +121,8 @@
       "google_news": true,
       "max_items": 30,
       "url": "https://news.google.com/rss/search?q=site:apnews.com+when:3h&hl=en-US&gl=US&ceid=US:en",
-      "verify": true
+      "verify": true,
+      "region": "Global"
     },
     {
       "id": "dropsite",
@@ -116,7 +130,8 @@
       "bot": "radar",
       "tier": "outlet",
       "url": "https://www.dropsitenews.com/feed",
-      "verify": true
+      "verify": true,
+      "region": "United States"
     },
     {
       "id": "straits-times",
@@ -124,7 +139,8 @@
       "bot": "radar",
       "tier": "outlet",
       "url": "https://www.straitstimes.com/news/world/rss.xml",
-      "verify": true
+      "verify": true,
+      "region": "Singapore"
     },
     {
       "id": "dw-all",
@@ -132,7 +148,8 @@
       "bot": "radar",
       "tier": "outlet",
       "url": "https://rss.dw.com/rdf/rss-en-all",
-      "verify": true
+      "verify": true,
+      "region": "Europe"
     },
     {
       "id": "scmp-news",
@@ -141,7 +158,8 @@
       "tier": "outlet",
       "url": "https://www.scmp.com/rss/91/feed/",
       "headlines_only": true,
-      "headlines_only_reason": "Feed works. SCMP article pages are paywalled and refuse automated clients (HTTP 403); headlines and links only."
+      "headlines_only_reason": "Feed works. SCMP article pages are paywalled and refuse automated clients (HTTP 403); headlines and links only.",
+      "region": "China"
     },
     {
       "id": "sec-press",
@@ -149,14 +167,16 @@
       "bot": "primary",
       "tier": "primary",
       "url": "https://www.sec.gov/news/pressreleases.rss",
-      "verify": true
+      "verify": true,
+      "region": "United States"
     },
     {
       "id": "sec-litigation",
       "org": "US SEC",
       "bot": "primary",
       "tier": "primary",
-      "url": "https://www.sec.gov/enforcement-litigation/litigation-releases/rss"
+      "url": "https://www.sec.gov/enforcement-litigation/litigation-releases/rss",
+      "region": "United States"
     },
     {
       "id": "sec-8k-material",
@@ -173,7 +193,8 @@
         "item 3.01",
         "item 4.01"
       ],
-      "verify": true
+      "verify": true,
+      "region": "United States"
     },
     {
       "id": "doj-press",
@@ -181,7 +202,8 @@
       "bot": "primary",
       "tier": "primary",
       "url": "https://www.justice.gov/news/rss?type=press_release&m=1",
-      "verify": true
+      "verify": true,
+      "region": "United States"
     },
     {
       "id": "fbi-press",
@@ -191,7 +213,8 @@
       "url": "https://www.fbi.gov/feeds/national-press-releases/rss.xml",
       "verify": true,
       "official": true,
-      "note_method": "a: official RSS (fbi.gov blocks some cloud IPs; falls back to fbi-gn)"
+      "note_method": "a: official RSS (fbi.gov blocks some cloud IPs; falls back to fbi-gn)",
+      "region": "United States"
     },
     {
       "id": "whitehouse",
@@ -199,7 +222,8 @@
       "bot": "primary",
       "tier": "primary",
       "url": "https://www.whitehouse.gov/news/feed/",
-      "verify": true
+      "verify": true,
+      "region": "United States"
     },
     {
       "id": "treasury-press",
@@ -215,7 +239,8 @@
         "min_title": 25
       },
       "max_items": 25,
-      "note_method": "b: official press page (feed URL retired)"
+      "note_method": "b: official press page (feed URL retired)",
+      "region": "United States"
     },
     {
       "id": "ofac-actions",
@@ -230,7 +255,8 @@
         "href_regex": "/recent-actions/\\d{8}$",
         "min_title": 12
       },
-      "max_items": 20
+      "max_items": 20,
+      "region": "United States"
     },
     {
       "id": "uk-gov-news",
@@ -238,7 +264,8 @@
       "bot": "primary",
       "tier": "primary",
       "url": "https://www.gov.uk/search/news-and-communications.atom",
-      "verify": true
+      "verify": true,
+      "region": "United Kingdom"
     },
     {
       "id": "uk-parliament-news",
@@ -247,7 +274,8 @@
       "tier": "primary",
       "url": "https://bills.parliament.uk/rss/allbills.rss",
       "headlines_only": true,
-      "headlines_only_reason": "Feed works. bills.parliament.uk pages sit behind a bot challenge (HTTP 403) for automated clients; not circumvented. Titles and links only."
+      "headlines_only_reason": "Feed works. bills.parliament.uk pages sit behind a bot challenge (HTTP 403) for automated clients; not circumvented. Titles and links only.",
+      "region": "United Kingdom"
     },
     {
       "id": "eu-presscorner",
@@ -255,7 +283,8 @@
       "bot": "primary",
       "tier": "primary",
       "url": "https://ec.europa.eu/commission/presscorner/api/rss?language=en",
-      "verify": true
+      "verify": true,
+      "region": "Europe"
     },
     {
       "id": "afp-au",
@@ -270,7 +299,8 @@
         "min_title": 25
       },
       "max_items": 25,
-      "note_method": "b: official press page (no AFP feed exists)"
+      "note_method": "b: official press page (no AFP feed exists)",
+      "region": "Australia"
     },
     {
       "id": "asic-media",
@@ -285,7 +315,8 @@
         "min_title": 25
       },
       "max_items": 25,
-      "note_method": "b: official press page (no ASIC feed exists)"
+      "note_method": "b: official press page (no ASIC feed exists)",
+      "region": "Australia"
     },
     {
       "id": "accc-media",
@@ -295,7 +326,8 @@
       "url": "https://www.accc.gov.au/rss/media_releases.xml",
       "enabled": false,
       "disabled_checked": "2026-11-26",
-      "disabled_reason": "accc.gov.au now returns HTTP 403 to automated clients on every URL (feed and web pages), from home and cloud IPs; not circumvented. Replaced by accc-gn (Google News headlines)."
+      "disabled_reason": "accc.gov.au now returns HTTP 403 to automated clients on every URL (feed and web pages), from home and cloud IPs; not circumvented. Replaced by accc-gn (Google News headlines).",
+      "region": "Australia"
     },
     {
       "id": "accc-gn",
@@ -304,7 +336,8 @@
       "tier": "outlet",
       "google_news": true,
       "max_items": 20,
-      "url": "https://news.google.com/rss/search?q=site:accc.gov.au+when:14d&hl=en-AU&gl=AU&ceid=AU:en"
+      "url": "https://news.google.com/rss/search?q=site:accc.gov.au+when:14d&hl=en-AU&gl=AU&ceid=AU:en",
+      "region": "Australia"
     },
     {
       "id": "aph-news",
@@ -313,14 +346,16 @@
       "tier": "primary",
       "url": "https://www.aph.gov.au/house/rss/media_releases",
       "headlines_only": true,
-      "headlines_only_reason": "Feed works. aph.gov.au pages sit behind a WAF (HTTP 403) for automated clients; not circumvented. Titles and links only."
+      "headlines_only_reason": "Feed works. aph.gov.au pages sit behind a WAF (HTTP 403) for automated clients; not circumvented. Titles and links only.",
+      "region": "Australia"
     },
     {
       "id": "icc-news",
       "org": "International Criminal Court",
       "bot": "primary",
       "tier": "primary",
-      "url": "https://www.icc-cpi.int/rss/news/all"
+      "url": "https://www.icc-cpi.int/rss/news/all",
+      "region": "Global"
     },
     {
       "id": "icj-press",
@@ -337,28 +372,32 @@
       },
       "max_items": 25,
       "note_method": "b: official press page (no ICJ feed exists)",
-      "headlines_only": true
+      "headlines_only": true,
+      "region": "Global"
     },
     {
       "id": "un-news",
       "org": "United Nations",
       "bot": "primary",
       "tier": "primary",
-      "url": "https://news.un.org/feed/subscribe/en/news/all/rss.xml"
+      "url": "https://news.un.org/feed/subscribe/en/news/all/rss.xml",
+      "region": "Global"
     },
     {
       "id": "icij",
       "org": "ICIJ",
       "bot": "primary",
       "tier": "primary",
-      "url": "https://www.icij.org/feed/"
+      "url": "https://www.icij.org/feed/",
+      "region": "Global"
     },
     {
       "id": "occrp",
       "org": "OCCRP",
       "bot": "primary",
       "tier": "primary",
-      "url": "https://www.occrp.org/en/feed"
+      "url": "https://www.occrp.org/en/feed",
+      "region": "Global"
     },
     {
       "id": "bsky-nytimes",
@@ -366,7 +405,8 @@
       "bot": "trends",
       "tier": "trend",
       "url": "https://bsky.app/profile/nytimes.com/rss",
-      "max_items": 10
+      "max_items": 10,
+      "region": "United States"
     },
     {
       "id": "bsky-techcrunch",
@@ -374,7 +414,8 @@
       "bot": "trends",
       "tier": "trend",
       "url": "https://bsky.app/profile/techcrunch.com/rss",
-      "max_items": 10
+      "max_items": 10,
+      "region": "United States"
     },
     {
       "id": "bsky-tagesschau",
@@ -382,7 +423,8 @@
       "bot": "trends",
       "tier": "trend",
       "url": "https://bsky.app/profile/tagesschau.bsky.social/rss",
-      "max_items": 10
+      "max_items": 10,
+      "region": "Europe"
     },
     {
       "id": "gtrends-au",
@@ -390,7 +432,8 @@
       "bot": "trends",
       "tier": "trend",
       "url": "https://trends.google.com/trending/rss?geo=AU",
-      "verify": true
+      "verify": true,
+      "region": "Australia"
     },
     {
       "id": "gtrends-us",
@@ -398,7 +441,8 @@
       "bot": "trends",
       "tier": "trend",
       "url": "https://trends.google.com/trending/rss?geo=US",
-      "verify": true
+      "verify": true,
+      "region": "United States"
     },
     {
       "id": "reddit-news",
@@ -409,7 +453,8 @@
       "max_items": 20,
       "verify": true,
       "enabled": false,
-      "disabled_reason": "Reddit returns 404/429 to automated clients; needs an OAuth app. Disabled at zero cost."
+      "disabled_reason": "Reddit returns 404/429 to automated clients; needs an OAuth app. Disabled at zero cost.",
+      "region": "United States"
     },
     {
       "id": "reddit-worldnews",
@@ -420,7 +465,8 @@
       "max_items": 20,
       "verify": true,
       "enabled": false,
-      "disabled_reason": "Reddit returns 404/429 to automated clients; needs an OAuth app. Disabled at zero cost."
+      "disabled_reason": "Reddit returns 404/429 to automated clients; needs an OAuth app. Disabled at zero cost.",
+      "region": "Global"
     },
     {
       "id": "reddit-australia",
@@ -431,7 +477,8 @@
       "max_items": 20,
       "verify": true,
       "enabled": false,
-      "disabled_reason": "Reddit returns 404/429 to automated clients; needs an OAuth app. Disabled at zero cost."
+      "disabled_reason": "Reddit returns 404/429 to automated clients; needs an OAuth app. Disabled at zero cost.",
+      "region": "Australia"
     },
     {
       "id": "reddit-technology",
@@ -442,7 +489,8 @@
       "max_items": 20,
       "verify": true,
       "enabled": false,
-      "disabled_reason": "Reddit returns 404/429 to automated clients; needs an OAuth app. Disabled at zero cost."
+      "disabled_reason": "Reddit returns 404/429 to automated clients; needs an OAuth app. Disabled at zero cost.",
+      "region": "Global"
     },
     {
       "id": "fbi-gn",
@@ -454,7 +502,8 @@
       "max_items": 20,
       "url": "https://news.google.com/rss/search?q=site:fbi.gov+when:14d&hl=en-US&gl=US&ceid=US:en",
       "enabled": false,
-      "disabled_reason": "fallback (c): switched on only if the direct feed or page is blocked"
+      "disabled_reason": "fallback (c): switched on only if the direct feed or page is blocked",
+      "region": "United States"
     },
     {
       "id": "treasury-gn",
@@ -466,7 +515,8 @@
       "max_items": 20,
       "url": "https://news.google.com/rss/search?q=site:home.treasury.gov+when:14d&hl=en-US&gl=US&ceid=US:en",
       "enabled": false,
-      "disabled_reason": "fallback (c): switched on only if the direct feed or page is blocked"
+      "disabled_reason": "fallback (c): switched on only if the direct feed or page is blocked",
+      "region": "United States"
     },
     {
       "id": "ofac-gn",
@@ -478,7 +528,8 @@
       "max_items": 20,
       "url": "https://news.google.com/rss/search?q=site:ofac.treasury.gov+when:14d&hl=en-US&gl=US&ceid=US:en",
       "enabled": false,
-      "disabled_reason": "fallback (c): switched on only if the direct feed or page is blocked"
+      "disabled_reason": "fallback (c): switched on only if the direct feed or page is blocked",
+      "region": "United States"
     },
     {
       "id": "asic-gn",
@@ -490,7 +541,8 @@
       "max_items": 20,
       "url": "https://news.google.com/rss/search?q=site:asic.gov.au+when:14d&hl=en-AU&gl=AU&ceid=AU:en",
       "enabled": false,
-      "disabled_reason": "fallback (c): switched on only if the direct feed or page is blocked"
+      "disabled_reason": "fallback (c): switched on only if the direct feed or page is blocked",
+      "region": "Australia"
     },
     {
       "id": "afp-gn",
@@ -502,7 +554,8 @@
       "max_items": 20,
       "url": "https://news.google.com/rss/search?q=site:afp.gov.au+when:14d&hl=en-AU&gl=AU&ceid=AU:en",
       "enabled": false,
-      "disabled_reason": "fallback (c): switched on only if the direct feed or page is blocked"
+      "disabled_reason": "fallback (c): switched on only if the direct feed or page is blocked",
+      "region": "Australia"
     },
     {
       "id": "icj-gn",
@@ -514,7 +567,8 @@
       "max_items": 20,
       "url": "https://news.google.com/rss/search?q=site:icj-cij.org+when:14d&hl=en-US&gl=US&ceid=US:en",
       "enabled": false,
-      "disabled_reason": "fallback (c): switched on only if the direct feed or page is blocked"
+      "disabled_reason": "fallback (c): switched on only if the direct feed or page is blocked",
+      "region": "Global"
     },
     {
       "id": "ofac-rss-stale",
@@ -523,7 +577,1078 @@
       "tier": "primary",
       "url": "https://ofac.treasury.gov/rss.xml",
       "enabled": false,
-      "disabled_reason": "Official RSS works but is stale (newest item over 650 days old); replaced by the Recent Actions page (ofac-actions)."
+      "disabled_reason": "Official RSS works but is stale (newest item over 650 days old); replaced by the Recent Actions page (ofac-actions).",
+      "region": "United States"
+    },
+    {
+      "id": "indian-express",
+      "org": "Indian Express",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "India",
+      "url": "https://indianexpress.com/feed/"
+    },
+    {
+      "id": "hindustan-times",
+      "org": "Hindustan Times",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "India",
+      "url": "https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml"
+    },
+    {
+      "id": "ndtv",
+      "org": "NDTV",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "India",
+      "url": "https://feeds.feedburner.com/ndtvnews-top-stories"
+    },
+    {
+      "id": "scroll",
+      "org": "Scroll.in",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "India",
+      "url": "https://feeds.feedburner.com/ScrollinArticles.rss"
+    },
+    {
+      "id": "the-hindu-gn",
+      "org": "The Hindu (headlines via Google News)",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "India",
+      "url": "https://news.google.com/rss/search?q=site:thehindu.com+when:2d&hl=en-US&gl=US&ceid=US:en",
+      "google_news": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "Google News RSS carries headline + link only; the direct feed is blocked or does not exist."
+    },
+    {
+      "id": "the-wire-gn",
+      "org": "The Wire (headlines via Google News)",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "India",
+      "url": "https://news.google.com/rss/search?q=site:thewire.in+when:3d&hl=en-US&gl=US&ceid=US:en",
+      "google_news": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "Google News RSS carries headline + link only; the direct feed is blocked or does not exist."
+    },
+    {
+      "id": "pib-gn",
+      "org": "PIB (Government of India press releases) (headlines via Google News)",
+      "bot": "primary",
+      "tier": "primary",
+      "region": "India",
+      "url": "https://news.google.com/rss/search?q=site:pib.gov.in+when:14d&hl=en-US&gl=US&ceid=US:en",
+      "google_news": true,
+      "official": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "The official site has no usable feed or refuses automated clients (not circumvented); Google News site: search lists its releases (headline + link only)."
+    },
+    {
+      "id": "sebi-gn",
+      "org": "SEBI press releases (headlines via Google News)",
+      "bot": "primary",
+      "tier": "primary",
+      "region": "India",
+      "url": "https://news.google.com/rss/search?q=site:sebi.gov.in+when:30d&hl=en-US&gl=US&ceid=US:en",
+      "google_news": true,
+      "official": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "The official site has no usable feed or refuses automated clients (not circumvented); Google News site: search lists its releases (headline + link only)."
+    },
+    {
+      "id": "rbi",
+      "org": "RBI press releases",
+      "bot": "primary",
+      "tier": "primary",
+      "region": "India",
+      "url": "https://rbi.org.in/pressreleases_rss.xml",
+      "max_items": 15
+    },
+    {
+      "id": "xinhua-gn",
+      "org": "Xinhua English (headlines via Google News)",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "China",
+      "url": "https://news.google.com/rss/search?q=site:english.news.cn+when:2d&hl=en-US&gl=US&ceid=US:en",
+      "google_news": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "Google News RSS carries headline + link only; the direct feed is blocked or does not exist."
+    },
+    {
+      "id": "cgtn",
+      "org": "CGTN",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "China",
+      "url": "https://www.cgtn.com/subscribe/rss/section/world.xml"
+    },
+    {
+      "id": "global-times-gn",
+      "org": "Global Times (headlines via Google News)",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "China",
+      "url": "https://news.google.com/rss/search?q=site:globaltimes.cn+when:2d&hl=en-US&gl=US&ceid=US:en",
+      "google_news": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "Google News RSS carries headline + link only; the direct feed is blocked or does not exist."
+    },
+    {
+      "id": "china-daily-gn",
+      "org": "China Daily (headlines via Google News)",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "China",
+      "url": "https://news.google.com/rss/search?q=site:chinadaily.com.cn+when:2d&hl=en-US&gl=US&ceid=US:en",
+      "google_news": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "Google News RSS carries headline + link only; the direct feed is blocked or does not exist."
+    },
+    {
+      "id": "caixin-gn",
+      "org": "Caixin Global (headlines via Google News)",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "China",
+      "url": "https://news.google.com/rss/search?q=site:caixinglobal.com+when:7d&hl=en-US&gl=US&ceid=US:en",
+      "google_news": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "Google News RSS carries headline + link only; the direct feed is blocked or does not exist."
+    },
+    {
+      "id": "mfa-china-gn",
+      "org": "Ministry of Foreign Affairs of China (headlines via Google News)",
+      "bot": "primary",
+      "tier": "primary",
+      "region": "China",
+      "url": "https://news.google.com/rss/search?q=site:mfa.gov.cn+when:14d&hl=en-US&gl=US&ceid=US:en",
+      "google_news": true,
+      "official": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "The official site has no usable feed or refuses automated clients (not circumvented); Google News site: search lists its releases (headline + link only)."
+    },
+    {
+      "id": "cna",
+      "org": "CNA",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Singapore",
+      "url": "https://www.channelnewsasia.com/api/v1/rss-outbound-feed?_format=xml"
+    },
+    {
+      "id": "mas-gn",
+      "org": "MAS media releases (headlines via Google News)",
+      "bot": "primary",
+      "tier": "primary",
+      "region": "Singapore",
+      "url": "https://news.google.com/rss/search?q=site:mas.gov.sg+when:30d&hl=en-US&gl=US&ceid=US:en",
+      "google_news": true,
+      "official": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "The official site has no usable feed or refuses automated clients (not circumvented); Google News site: search lists its releases (headline + link only)."
+    },
+    {
+      "id": "japan-times",
+      "org": "The Japan Times",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Japan",
+      "url": "https://www.japantimes.co.jp/feed/"
+    },
+    {
+      "id": "nhk-gn",
+      "org": "NHK World (headlines via Google News)",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Japan",
+      "url": "https://news.google.com/rss/search?q=site:www3.nhk.or.jp/nhkworld+when:2d&hl=en-US&gl=US&ceid=US:en",
+      "google_news": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "Google News RSS carries headline + link only; the direct feed is blocked or does not exist."
+    },
+    {
+      "id": "korea-herald-gn",
+      "org": "The Korea Herald (headlines via Google News)",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "South Korea",
+      "url": "https://news.google.com/rss/search?q=site:koreaherald.com+when:2d&hl=en-US&gl=US&ceid=US:en",
+      "google_news": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "Google News RSS carries headline + link only; the direct feed is blocked or does not exist."
+    },
+    {
+      "id": "bangkok-post",
+      "org": "Bangkok Post",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Thailand",
+      "url": "https://www.bangkokpost.com/rss/data/topstories.xml"
+    },
+    {
+      "id": "jakarta-post-gn",
+      "org": "The Jakarta Post (headlines via Google News)",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Indonesia",
+      "url": "https://news.google.com/rss/search?q=site:thejakartapost.com+when:2d&hl=en-US&gl=US&ceid=US:en",
+      "google_news": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "Google News RSS carries headline + link only; the direct feed is blocked or does not exist."
+    },
+    {
+      "id": "times-of-israel",
+      "org": "The Times of Israel",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Middle East",
+      "url": "https://www.timesofisrael.com/feed/"
+    },
+    {
+      "id": "haaretz",
+      "org": "Haaretz",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Middle East",
+      "url": "https://www.haaretz.com/srv/haaretz-latest-headlines"
+    },
+    {
+      "id": "middle-east-eye",
+      "org": "Middle East Eye",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Middle East",
+      "url": "https://www.middleeasteye.net/rss"
+    },
+    {
+      "id": "arab-news-gn",
+      "org": "Arab News (headlines via Google News)",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Middle East",
+      "url": "https://news.google.com/rss/search?q=site:arabnews.com+when:2d&hl=en-US&gl=US&ceid=US:en",
+      "google_news": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "Google News RSS carries headline + link only; the direct feed is blocked or does not exist."
+    },
+    {
+      "id": "dawn",
+      "org": "Dawn (Pakistan)",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Pakistan",
+      "url": "https://www.dawn.com/feeds/home"
+    },
+    {
+      "id": "africanews",
+      "org": "Africanews",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Africa",
+      "url": "https://www.africanews.com/feed/rss"
+    },
+    {
+      "id": "mail-guardian-gn",
+      "org": "Mail & Guardian (headlines via Google News)",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Africa",
+      "url": "https://news.google.com/rss/search?q=site:mg.co.za+when:2d&hl=en-US&gl=US&ceid=US:en",
+      "google_news": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "Google News RSS carries headline + link only; the direct feed is blocked or does not exist."
+    },
+    {
+      "id": "buenos-aires-times",
+      "org": "Buenos Aires Times",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Latin America",
+      "url": "https://www.batimes.com.ar/feed"
+    },
+    {
+      "id": "mercopress",
+      "org": "MercoPress",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Latin America",
+      "url": "https://en.mercopress.com/rss/"
+    },
+    {
+      "id": "reuters-world-gn",
+      "org": "Reuters (world, via Google News)",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Global",
+      "url": "https://news.google.com/rss/search?q=site:reuters.com/world+when:3h&hl=en-US&gl=US&ceid=US:en",
+      "google_news": true,
+      "max_items": 30
+    },
+    {
+      "id": "france24",
+      "org": "France 24",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Europe",
+      "url": "https://www.france24.com/en/rss"
+    },
+    {
+      "id": "euronews",
+      "org": "Euronews",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Europe",
+      "url": "https://www.euronews.com/rss?level=theme&name=news"
+    },
+    {
+      "id": "gtrends-in",
+      "org": "Google Trends IN",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "India",
+      "url": "https://trends.google.com/trending/rss?geo=IN"
+    },
+    {
+      "id": "gtrends-sg",
+      "org": "Google Trends SG",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "Singapore",
+      "url": "https://trends.google.com/trending/rss?geo=SG"
+    },
+    {
+      "id": "gtrends-gb",
+      "org": "Google Trends GB",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "United Kingdom",
+      "url": "https://trends.google.com/trending/rss?geo=GB"
+    },
+    {
+      "id": "gtrends-ca",
+      "org": "Google Trends CA",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "Canada",
+      "url": "https://trends.google.com/trending/rss?geo=CA"
+    },
+    {
+      "id": "gtrends-jp",
+      "org": "Google Trends JP",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "Japan",
+      "url": "https://trends.google.com/trending/rss?geo=JP"
+    },
+    {
+      "id": "cisa-advisories",
+      "org": "CISA alerts and advisories",
+      "bot": "primary",
+      "tier": "primary",
+      "region": "United States",
+      "url": "https://www.cisa.gov/cybersecurity-advisories/all.xml",
+      "max_items": 20
+    },
+    {
+      "id": "ncsc-uk",
+      "org": "NCSC UK",
+      "bot": "primary",
+      "tier": "primary",
+      "region": "United Kingdom",
+      "url": "https://www.ncsc.gov.uk/api/1/services/v1/all-rss-feed.xml",
+      "max_items": 20
+    },
+    {
+      "id": "acsc-gn",
+      "org": "Australian Cyber Security Centre (headlines via Google News)",
+      "bot": "primary",
+      "tier": "primary",
+      "region": "Australia",
+      "url": "https://news.google.com/rss/search?q=site:cyber.gov.au+when:14d&hl=en-AU&gl=AU&ceid=AU:en",
+      "google_news": true,
+      "official": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "The official site has no usable feed or refuses automated clients (not circumvented); Google News site: search lists its releases (headline + link only)."
+    },
+    {
+      "id": "cert-in-gn",
+      "org": "CERT-In (headlines via Google News)",
+      "bot": "primary",
+      "tier": "primary",
+      "region": "India",
+      "url": "https://news.google.com/rss/search?q=site:cert-in.org.in+when:30d&hl=en-US&gl=US&ceid=US:en",
+      "google_news": true,
+      "official": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "The official site has no usable feed or refuses automated clients (not circumvented); Google News site: search lists its releases (headline + link only)."
+    },
+    {
+      "id": "csa-gn",
+      "org": "CSA Singapore (headlines via Google News)",
+      "bot": "primary",
+      "tier": "primary",
+      "region": "Singapore",
+      "url": "https://news.google.com/rss/search?q=site:csa.gov.sg+when:60d&hl=en-US&gl=US&ceid=US:en",
+      "google_news": true,
+      "official": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "The official site has no usable feed or refuses automated clients (not circumvented); Google News site: search lists its releases (headline + link only)."
+    },
+    {
+      "id": "cert-eu",
+      "org": "CERT-EU",
+      "bot": "primary",
+      "tier": "primary",
+      "region": "Europe",
+      "url": "https://cert.europa.eu/publications/security-advisories-rss",
+      "max_items": 15
+    },
+    {
+      "id": "enisa-gn",
+      "org": "ENISA (headlines via Google News)",
+      "bot": "primary",
+      "tier": "primary",
+      "region": "Europe",
+      "url": "https://news.google.com/rss/search?q=site:enisa.europa.eu+when:30d&hl=en-US&gl=US&ceid=US:en",
+      "google_news": true,
+      "official": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "The official site has no usable feed or refuses automated clients (not circumvented); Google News site: search lists its releases (headline + link only)."
+    },
+    {
+      "id": "jpcert",
+      "org": "JPCERT/CC",
+      "bot": "primary",
+      "tier": "primary",
+      "region": "Japan",
+      "url": "https://www.jpcert.or.jp/english/rss/jpcert-en.rdf",
+      "max_items": 10
+    },
+    {
+      "id": "fbi-ic3",
+      "org": "FBI IC3",
+      "bot": "primary",
+      "tier": "primary",
+      "region": "United States",
+      "url": "https://www.ic3.gov/PSA/RSS",
+      "max_items": 10
+    },
+    {
+      "id": "ico-gn",
+      "org": "ICO UK (headlines via Google News)",
+      "bot": "primary",
+      "tier": "primary",
+      "region": "United Kingdom",
+      "url": "https://news.google.com/rss/search?q=site:ico.org.uk+when:30d&hl=en-GB&gl=GB&ceid=GB:en",
+      "google_news": true,
+      "official": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "The official site has no usable feed or refuses automated clients (not circumvented); Google News site: search lists its releases (headline + link only)."
+    },
+    {
+      "id": "oaic-gn",
+      "org": "OAIC Australia (headlines via Google News)",
+      "bot": "primary",
+      "tier": "primary",
+      "region": "Australia",
+      "url": "https://news.google.com/rss/search?q=site:oaic.gov.au+when:60d&hl=en-AU&gl=AU&ceid=AU:en",
+      "google_news": true,
+      "official": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "The official site has no usable feed or refuses automated clients (not circumvented); Google News site: search lists its releases (headline + link only)."
+    },
+    {
+      "id": "eu-ai-office",
+      "org": "EU AI Office (digital strategy newsroom)",
+      "bot": "primary",
+      "tier": "primary",
+      "region": "Europe",
+      "url": "https://digital-strategy.ec.europa.eu/en/rss.xml",
+      "max_items": 30,
+      "require_any": [
+        "ai ",
+        "ai,",
+        "ai-",
+        "artificial intelligence",
+        "ai act",
+        "ai office"
+      ]
+    },
+    {
+      "id": "ftc-ai",
+      "org": "US FTC (AI actions)",
+      "bot": "primary",
+      "tier": "primary",
+      "region": "United States",
+      "url": "https://www.ftc.gov/feeds/press-release.xml",
+      "max_items": 30,
+      "require_any": [
+        "artificial intelligence",
+        " ai ",
+        "ai-",
+        "ai,",
+        "ai.",
+        "chatbot",
+        "algorithm",
+        "deepfake",
+        "voice cloning",
+        "machine learning"
+      ]
+    },
+    {
+      "id": "uk-aisi-gn",
+      "org": "UK AI Security Institute (headlines via Google News)",
+      "bot": "primary",
+      "tier": "primary",
+      "region": "United Kingdom",
+      "url": "https://news.google.com/rss/search?q=site:aisi.gov.uk+when:90d&hl=en-GB&gl=GB&ceid=GB:en",
+      "google_news": true,
+      "official": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "The official site has no usable feed or refuses automated clients (not circumvented); Google News site: search lists its releases (headline + link only)."
+    },
+    {
+      "id": "bleepingcomputer",
+      "org": "BleepingComputer",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Global",
+      "url": "https://www.bleepingcomputer.com/feed/"
+    },
+    {
+      "id": "the-record",
+      "org": "The Record",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Global",
+      "url": "https://therecord.media/feed"
+    },
+    {
+      "id": "krebs",
+      "org": "Krebs on Security",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Global",
+      "url": "https://krebsonsecurity.com/feed/"
+    },
+    {
+      "id": "hacker-news",
+      "org": "The Hacker News",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Global",
+      "url": "https://feeds.feedburner.com/TheHackersNews"
+    },
+    {
+      "id": "securityweek",
+      "org": "SecurityWeek",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Global",
+      "url": "https://feeds.feedburner.com/securityweek"
+    },
+    {
+      "id": "dark-reading",
+      "org": "Dark Reading",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Global",
+      "url": "https://www.darkreading.com/rss.xml"
+    },
+    {
+      "id": "wired-security",
+      "org": "Wired Security",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Global",
+      "url": "https://www.wired.com/feed/category/security/latest/rss"
+    },
+    {
+      "id": "register-gn",
+      "org": "The Register (headlines via Google News)",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Global",
+      "url": "https://news.google.com/rss/search?q=site:theregister.com+when:3d&hl=en-US&gl=US&ceid=US:en",
+      "google_news": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "Google News RSS carries headline + link only; the direct feed is blocked or does not exist."
+    },
+    {
+      "id": "ars-security",
+      "org": "Ars Technica (security)",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Global",
+      "url": "https://arstechnica.com/security/feed/"
+    },
+    {
+      "id": "mit-tr-ai",
+      "org": "MIT Technology Review (AI)",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Global",
+      "url": "https://www.technologyreview.com/topic/artificial-intelligence/feed"
+    },
+    {
+      "id": "404-media",
+      "org": "404 Media",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Global",
+      "url": "https://www.404media.co/rss/"
+    },
+    {
+      "id": "rest-of-world",
+      "org": "Rest of World",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Global",
+      "url": "https://restofworld.org/feed/latest"
+    },
+    {
+      "id": "openai-news",
+      "org": "OpenAI news",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Global",
+      "url": "https://openai.com/news/rss.xml"
+    },
+    {
+      "id": "anthropic-gn",
+      "org": "Anthropic news (headlines via Google News)",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Global",
+      "url": "https://news.google.com/rss/search?q=site:anthropic.com+when:30d&hl=en-US&gl=US&ceid=US:en",
+      "google_news": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "Google News RSS carries headline + link only; the direct feed is blocked or does not exist."
+    },
+    {
+      "id": "google-cloud-ti-gn",
+      "org": "Google Cloud threat intelligence blog (headlines via Google News)",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Global",
+      "url": "https://news.google.com/rss/search?q=site:cloud.google.com/blog/topics/threat-intelligence+when:30d&hl=en-US&gl=US&ceid=US:en",
+      "google_news": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "Google News RSS carries headline + link only; the direct feed is blocked or does not exist."
+    },
+    {
+      "id": "google-ai-blog",
+      "org": "Google AI blog",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Global",
+      "url": "https://blog.google/technology/ai/rss/"
+    },
+    {
+      "id": "microsoft-security-blog",
+      "org": "Microsoft security blog",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Global",
+      "url": "https://www.microsoft.com/en-us/security/blog/feed/"
+    },
+    {
+      "id": "bsky-apnews",
+      "org": "Bluesky @apnews.com",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "United States",
+      "url": "https://bsky.app/profile/apnews.com/rss",
+      "max_items": 10
+    },
+    {
+      "id": "bsky-reuters",
+      "org": "Bluesky @reuters.com",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "Global",
+      "url": "https://bsky.app/profile/reuters.com/rss",
+      "max_items": 10
+    },
+    {
+      "id": "bsky-theguardian",
+      "org": "Bluesky @theguardian.com",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "United Kingdom",
+      "url": "https://bsky.app/profile/theguardian.com/rss",
+      "max_items": 10
+    },
+    {
+      "id": "bsky-aljazeera",
+      "org": "Bluesky @aljazeera.com",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "Middle East",
+      "url": "https://bsky.app/profile/aljazeera.com/rss",
+      "max_items": 10
+    },
+    {
+      "id": "bsky-afp",
+      "org": "Bluesky @afp.com",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "Europe",
+      "url": "https://bsky.app/profile/afp.com/rss",
+      "max_items": 10
+    },
+    {
+      "id": "bsky-washingtonpost",
+      "org": "Bluesky @washingtonpost.com",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "United States",
+      "url": "https://bsky.app/profile/washingtonpost.com/rss",
+      "max_items": 10
+    },
+    {
+      "id": "bsky-npr",
+      "org": "Bluesky @npr.org",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "United States",
+      "url": "https://bsky.app/profile/npr.org/rss",
+      "max_items": 10
+    },
+    {
+      "id": "bsky-propublica",
+      "org": "Bluesky @propublica.org",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "United States",
+      "url": "https://bsky.app/profile/propublica.org/rss",
+      "max_items": 10
+    },
+    {
+      "id": "bsky-theintercept",
+      "org": "Bluesky @theintercept.com",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "United States",
+      "url": "https://bsky.app/profile/theintercept.com/rss",
+      "max_items": 10
+    },
+    {
+      "id": "bsky-thehindu",
+      "org": "Bluesky @thehindu.com",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "India",
+      "url": "https://bsky.app/profile/thehindu.com/rss",
+      "max_items": 10
+    },
+    {
+      "id": "bsky-japantimes",
+      "org": "Bluesky @japantimes.co.jp",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "Japan",
+      "url": "https://bsky.app/profile/japantimes.co.jp/rss",
+      "max_items": 10
+    },
+    {
+      "id": "bsky-timesofisrael",
+      "org": "Bluesky @timesofisrael.com",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "Middle East",
+      "url": "https://bsky.app/profile/timesofisrael.com/rss",
+      "max_items": 10
+    },
+    {
+      "id": "bsky-france24",
+      "org": "Bluesky @france24.com",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "Europe",
+      "url": "https://bsky.app/profile/france24.com/rss",
+      "max_items": 10
+    },
+    {
+      "id": "bsky-troyhunt",
+      "org": "Bluesky @troyhunt.com",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "Australia",
+      "url": "https://bsky.app/profile/troyhunt.com/rss",
+      "max_items": 10
+    },
+    {
+      "id": "bsky-schneier",
+      "org": "Bluesky @schneier.com",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "United States",
+      "url": "https://bsky.app/profile/schneier.com/rss",
+      "max_items": 10
+    },
+    {
+      "id": "bsky-bleepingcomputer",
+      "org": "Bluesky @bleepingcomputer.com",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "Global",
+      "url": "https://bsky.app/profile/bleepingcomputer.com/rss",
+      "max_items": 10
+    },
+    {
+      "id": "bsky-404media",
+      "org": "Bluesky @404media.co",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "United States",
+      "url": "https://bsky.app/profile/404media.co/rss",
+      "max_items": 10
+    },
+    {
+      "id": "bsky-wired",
+      "org": "Bluesky @wired.com",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "United States",
+      "url": "https://bsky.app/profile/wired.com/rss",
+      "max_items": 10
+    },
+    {
+      "id": "bsky-arstechnica",
+      "org": "Bluesky @arstechnica.com",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "United States",
+      "url": "https://bsky.app/profile/arstechnica.com/rss",
+      "max_items": 10
+    },
+    {
+      "id": "masto-briankrebs",
+      "org": "Mastodon @briankrebs@infosec.exchange",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "United States",
+      "url": "https://infosec.exchange/@briankrebs.rss",
+      "max_items": 10
+    },
+    {
+      "id": "masto-gossithedog",
+      "org": "Mastodon @GossiTheDog@cyberplace.social",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "United Kingdom",
+      "url": "https://cyberplace.social/@GossiTheDog.rss",
+      "max_items": 10
+    },
+    {
+      "id": "masto-josephcox",
+      "org": "Mastodon @josephcox@infosec.exchange",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "United States",
+      "url": "https://infosec.exchange/@josephcox.rss",
+      "max_items": 10
+    },
+    {
+      "id": "masto-campuscodi",
+      "org": "Mastodon @campuscodi@mastodon.social",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "Europe",
+      "url": "https://mastodon.social/@campuscodi.rss",
+      "max_items": 10
+    },
+    {
+      "id": "tg-abualiexpress",
+      "org": "Telegram Abu Ali Express (Israel)",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "Middle East",
+      "url": "https://t.me/s/abualiexpress",
+      "telegram_preview": true,
+      "max_items": 15,
+      "min_chars": 40
+    },
+    {
+      "id": "tg-idfofficial",
+      "org": "Telegram IDF (Israel)",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "Middle East",
+      "url": "https://t.me/s/idfofficial",
+      "telegram_preview": true,
+      "max_items": 15,
+      "min_chars": 40
+    },
+    {
+      "id": "tg-newsisrael",
+      "org": "Telegram News Israel",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "Middle East",
+      "url": "https://t.me/s/newsisrael",
+      "telegram_preview": true,
+      "max_items": 15,
+      "min_chars": 40
+    },
+    {
+      "id": "tg-indianexpress",
+      "org": "Telegram Indian Express",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "India",
+      "url": "https://t.me/s/indianexpress",
+      "telegram_preview": true,
+      "max_items": 15,
+      "min_chars": 40
+    },
+    {
+      "id": "tg-ukrpravda_news",
+      "org": "Telegram Ukrainska Pravda (Ukraine)",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "Ukraine",
+      "url": "https://t.me/s/ukrpravda_news",
+      "telegram_preview": true,
+      "max_items": 15,
+      "min_chars": 40
+    },
+    {
+      "id": "tg-ukrainenow",
+      "org": "Telegram Ukraine NOW",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "Ukraine",
+      "url": "https://t.me/s/UkraineNow",
+      "telegram_preview": true,
+      "max_items": 15,
+      "min_chars": 40
+    },
+    {
+      "id": "tg-v_zelenskiy_official",
+      "org": "Telegram Office of the President of Ukraine",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "Ukraine",
+      "url": "https://t.me/s/V_Zelenskiy_official",
+      "telegram_preview": true,
+      "max_items": 15,
+      "min_chars": 40
+    },
+    {
+      "id": "tg-kyivindependent_official",
+      "org": "Telegram Kyiv Independent",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "Ukraine",
+      "url": "https://t.me/s/kyivindependent_official",
+      "telegram_preview": true,
+      "max_items": 15,
+      "min_chars": 40
+    },
+    {
+      "id": "tg-suspilnenews",
+      "org": "Telegram Suspilne News (Ukraine)",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "Ukraine",
+      "url": "https://t.me/s/suspilnenews",
+      "telegram_preview": true,
+      "max_items": 15,
+      "min_chars": 40
+    },
+    {
+      "id": "tg-tass_agency",
+      "org": "Telegram TASS (Russia)",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "Russia",
+      "url": "https://t.me/s/tass_agency",
+      "telegram_preview": true,
+      "max_items": 15,
+      "min_chars": 40
+    },
+    {
+      "id": "tg-rian_ru",
+      "org": "Telegram RIA Novosti (Russia)",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "Russia",
+      "url": "https://t.me/s/rian_ru",
+      "telegram_preview": true,
+      "max_items": 15,
+      "min_chars": 40
+    },
+    {
+      "id": "tg-meduzalive",
+      "org": "Telegram Meduza (Russia)",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "Russia",
+      "url": "https://t.me/s/meduzalive",
+      "telegram_preview": true,
+      "max_items": 15,
+      "min_chars": 40
+    },
+    {
+      "id": "tg-bbcrussian",
+      "org": "Telegram BBC Russian",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "Russia",
+      "url": "https://t.me/s/bbcrussian",
+      "telegram_preview": true,
+      "max_items": 15,
+      "min_chars": 40
+    },
+    {
+      "id": "tg-rbc_news",
+      "org": "Telegram RBC (Russia)",
+      "bot": "trends",
+      "tier": "trend",
+      "region": "Russia",
+      "url": "https://t.me/s/rbc_news",
+      "telegram_preview": true,
+      "max_items": 15,
+      "min_chars": 40
+    },
+    {
+      "id": "venturebeat-ai",
+      "org": "VentureBeat (AI)",
+      "bot": "radar",
+      "tier": "outlet",
+      "region": "Global",
+      "url": "https://venturebeat.com/category/ai/feed/"
     }
   ],
   "unavailable_at_zero_cost": {

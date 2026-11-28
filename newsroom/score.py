@@ -31,6 +31,13 @@ def _compiled(cfg):
     return _cache[key]
 
 
+def _regions(cfg) -> dict:
+    key = ("regions", id(cfg["sources"]))
+    if key not in _cache:
+        _cache[key] = {s["id"]: s.get("region", "") for s in cfg["sources"]["sources"]}
+    return _cache[key]
+
+
 def _hits(patterns, text):
     return sum(1 for p in patterns if p.search(text))
 
@@ -143,6 +150,10 @@ def score_story(story: dict, items: list[dict], now: datetime, trend_terms: set[
         aud += 4
     if any(cat in ("Financial crime", "Consumer exploitation") for cat in cats):
         aud += 3
+    reg_map = _regions(cfg)       # a story reported in 3 or more regions is of wider audience interest (small boost inside the 15-point part)
+    regions = sorted({reg_map.get(i["source_id"], "") for i in items} - {"", "Global"})
+    if len(regions) >= 3:
+        aud += 3
     aud = min(15, aud)
 
     angle = min(10, 2 * _hits(c["inv"], text) + (3 if primary_items else 0))
@@ -164,7 +175,7 @@ def score_story(story: dict, items: list[dict], now: datetime, trend_terms: set[
         "sec_8k": sec8k,
         "age_minutes": round(age_min, 1), "pub_known": bool(known), "orgs": orgs,
         "evidence_ok": evidence_ok, "sensational": sensational, "lead_only": lead_only,
-        "primary_url": primary_url, "trend_hit": trend_hit,
+        "primary_url": primary_url, "trend_hit": trend_hit, "regions": regions,
         "published_at": iso(ref) if known else None,
     }
 
