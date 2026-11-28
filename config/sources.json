@@ -581,12 +581,16 @@
       "region": "United States"
     },
     {
-      "id": "indian-express",
-      "org": "Indian Express",
+      "id": "indian-express-gn",
+      "org": "Indian Express (headlines via Google News)",
       "bot": "radar",
       "tier": "outlet",
       "region": "India",
-      "url": "https://indianexpress.com/feed/"
+      "url": "https://news.google.com/rss/search?q=site:indianexpress.com+when:2d&hl=en-US&gl=US&ceid=US:en",
+      "google_news": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "Google News RSS carries headline + link only; the direct feed is blocked or does not exist."
     },
     {
       "id": "hindustan-times",
@@ -602,7 +606,9 @@
       "bot": "radar",
       "tier": "outlet",
       "region": "India",
-      "url": "https://feeds.feedburner.com/ndtvnews-top-stories"
+      "url": "https://feeds.feedburner.com/ndtvnews-top-stories",
+      "headlines_only": true,
+      "headlines_only_reason": "The feed works; article pages refuse automated clients (403), which is not circumvented. Headlines and links only."
     },
     {
       "id": "scroll",
@@ -814,12 +820,16 @@
       "headlines_only_reason": "Google News RSS carries headline + link only; the direct feed is blocked or does not exist."
     },
     {
-      "id": "times-of-israel",
-      "org": "The Times of Israel",
+      "id": "times-of-israel-gn",
+      "org": "The Times of Israel (headlines via Google News)",
       "bot": "radar",
       "tier": "outlet",
       "region": "Middle East",
-      "url": "https://www.timesofisrael.com/feed/"
+      "url": "https://news.google.com/rss/search?q=site:timesofisrael.com+when:2d&hl=en-US&gl=US&ceid=US:en",
+      "google_news": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "Google News RSS carries headline + link only; the direct feed is blocked or does not exist."
     },
     {
       "id": "haaretz",
@@ -1179,7 +1189,9 @@
       "bot": "radar",
       "tier": "outlet",
       "region": "Global",
-      "url": "https://www.darkreading.com/rss.xml"
+      "url": "https://www.darkreading.com/rss.xml",
+      "headlines_only": true,
+      "headlines_only_reason": "The feed works; article pages refuse automated clients (403), which is not circumvented. Headlines and links only."
     },
     {
       "id": "wired-security",
@@ -1643,12 +1655,16 @@
       "min_chars": 40
     },
     {
-      "id": "venturebeat-ai",
-      "org": "VentureBeat (AI)",
+      "id": "venturebeat-ai-gn",
+      "org": "VentureBeat (AI) (headlines via Google News)",
       "bot": "radar",
       "tier": "outlet",
       "region": "Global",
-      "url": "https://venturebeat.com/category/ai/feed/"
+      "url": "https://news.google.com/rss/search?q=site:venturebeat.com+when:3d&hl=en-US&gl=US&ceid=US:en",
+      "google_news": true,
+      "max_items": 20,
+      "headlines_only": true,
+      "headlines_only_reason": "Google News RSS carries headline + link only; the direct feed is blocked or does not exist."
     }
   ],
   "unavailable_at_zero_cost": {
