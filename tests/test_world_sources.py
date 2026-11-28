@@ -74,7 +74,7 @@ def _aud(conn, cfg, sources):
 def test_three_regions_give_a_small_audience_boost(conn, cfg):
     two, r2 = _aud(conn, cfg, ["bbc-top", "straits-times"])
     assert r2 == ["Singapore", "United Kingdom"]
-    three, r3 = _aud(conn, cfg, ["bbc-top", "straits-times", "indian-express"])      # a fresh database each time would be cleaner; the story is re-found by headline
+    three, r3 = _aud(conn, cfg, ["bbc-top", "straits-times", "the-hindu-gn"])      # a fresh database each time would be cleaner; the story is re-found by headline
     assert r3 == ["India", "Singapore", "United Kingdom"] and three == two + 3 and three <= 15
 
 
