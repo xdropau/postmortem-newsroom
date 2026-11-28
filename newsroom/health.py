@@ -27,6 +27,13 @@ def check(conn, cfg, now) -> list[dict]:
             issues.append({"kind": "radar_stale", "subject": "radar",
                            "text": f"Breaking News Radar has not succeeded for {human_age(age * 60)} (limit {st['stale_radar_minutes']} min). The scheduler may have stopped."})
 
+    last_cycle = conn.execute("SELECT MAX(finished_at) m FROM runs WHERE bot IN ('radar','primary','trends')").fetchone()["m"]
+    if last_cycle:
+        silent = (now - parse_iso(last_cycle)).total_seconds() / 60
+        if silent > st.get("cycle_silent_minutes", 30):
+            issues.append({"kind": "cycle_silent", "subject": "cycle",
+                           "text": f"No cycle has finished for {human_age(silent * 60)} (limit {st.get('cycle_silent_minutes', 30)} min). The cycle clock may have stopped; the loop and the button watcher restart it on their own."})
+
     active = {s["id"] for s in cfg["sources"]["sources"] if s.get("enabled", True)} | {"youtube-trending-au"}
     for r in conn.execute("SELECT * FROM source_health WHERE consecutive_failures>=?", (st["source_failure_alert_after"],)):
         if r["source_id"] not in active:

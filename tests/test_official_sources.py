@@ -78,11 +78,15 @@ def test_watcher_heartbeat_starts_overdue_workflows_only():
     from conftest import NOW
     from newsroom import tapwatch
     iso = lambda m: (NOW - timedelta(minutes=m)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    runs = {"cycle.yml": [{"status": "completed", "created_at": iso(45)}], "health.yml": [{"status": "completed", "created_at": iso(10)}]}
+    runs = {"cycle.yml": [{"status": "completed", "created_at": iso(45)}], "health.yml": [{"status": "completed", "created_at": iso(10)}],
+            "cycle-loop.yml": [{"status": "in_progress", "created_at": iso(120)}]}
     started = []
     assert tapwatch.heartbeat(NOW, lambda w: runs[w], started.append) == ["cycle.yml"] and started == ["cycle.yml"]
     runs["cycle.yml"] = [{"status": "in_progress", "created_at": iso(90)}]          # already running: leave it alone
     assert tapwatch.heartbeat(NOW, lambda w: runs[w], started.append) == []
+    runs["cycle.yml"] = [{"status": "completed", "created_at": iso(5)}]
+    runs["cycle-loop.yml"] = [{"status": "completed", "created_at": iso(40)}]          # the loop ended and did not restart itself: start it
+    assert tapwatch.heartbeat(NOW, lambda w: runs[w], started.append) == ["cycle-loop.yml"]
 
 
 def test_cycle_rescoring_skips_test_cards_and_itemless_stories(conn, cfg):

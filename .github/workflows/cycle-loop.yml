@@ -1,0 +1,49 @@
+name: cycle-loop
+# The clock for the cycle. GitHub's free cron is unreliable, so ONE long-lived job keeps time itself: at every 15-minute mark it starts the normal
+# short `cycle` run (which holds the newsroom-data group for about a minute, so taps, ops, health and briefing are never blocked and the data
+# snapshot is never written twice at once). After about 5h45m it starts the next loop, the same way tapwatch chains itself.
+# The cron below is only a restart backup. Only one loop runs at a time (group cycle-loop). Free: public repository.
+on:
+  schedule:
+    - cron: "2,32 * * * *"
+  workflow_dispatch:
+concurrency:
+  group: cycle-loop
+  cancel-in-progress: false
+permissions:
+  actions: write      # only to start the cycle, health and next loop runs
+  contents: read
+jobs:
+  loop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      LOOP_SECONDS: "20700"       # 5h45m
+    steps:
+      - uses: actions/checkout@v4
+      - name: Keep time (dispatch the cycle at every 15-minute mark)
+        run: |
+          set -u
+          repo="$GITHUB_REPOSITORY"
+          end=$(( $(date +%s) + LOOP_SECONDS ))
+          go() { gh workflow run "$1" --repo "$repo" --ref main >/dev/null 2>&1 && echo "$(date -u +%H:%M:%S) started $1" || echo "$(date -u +%H:%M:%S) could not start $1"; }
+          age_of() {   # seconds since the newest cycle run was created / finished (9999999 if none)
+            gh run list --repo "$repo" --workflow cycle.yml --limit 10 --json createdAt,updatedAt,status 2>/dev/null | python3 scripts/cycle_age.py "$1"
+          }
+          echo "$(date -u +%H:%M:%S) loop started"
+          [ "$(age_of created)" -gt 600 ] && go cycle.yml     # no cycle in the last 10 minutes: do not wait for the next mark
+          last_nudge=0
+          while :; do
+            now=$(date +%s); next=$(( (now / 900 + 1) * 900 ))
+            [ "$next" -ge "$end" ] && break
+            sleep $(( next - now ))
+            go cycle.yml
+            if [ "$(age_of finished)" -gt 1800 ] && [ $(( $(date +%s) - last_nudge )) -gt 1800 ]; then   # no cycle finished for 30 minutes: have the health run raise the ops alert
+              last_nudge=$(date +%s); go health.yml
+            fi
+          done
+          echo "$(date -u +%H:%M:%S) loop time is up"
+      - name: Start the next loop (so the chain does not depend on the cron)
+        if: always()
+        run: gh workflow run cycle-loop.yml --repo "$GITHUB_REPOSITORY" --ref main || true

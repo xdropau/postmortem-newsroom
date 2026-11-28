@@ -148,9 +148,22 @@ def test_health_alerts_are_deduplicated(conn, cfg, tg):
     r1 = health.run_health(conn, cfg, n, NOW)
     r2 = health.run_health(conn, cfg, n, NOW + timedelta(minutes=30))
     kinds = {i["kind"] for i in r1["issues"]}
-    assert {"source_down", "radar_stale"} <= kinds
-    assert r1["alerts_sent"] == 2 and r2["alerts_sent"] == 0
-    assert health.run_health(conn, cfg, n, NOW + timedelta(hours=7))["alerts_sent"] == 2  # re-alerts after cooldown
+    assert {"source_down", "radar_stale", "cycle_silent"} <= kinds
+    assert r1["alerts_sent"] == 3 and r2["alerts_sent"] == 0
+    assert health.run_health(conn, cfg, n, NOW + timedelta(hours=7))["alerts_sent"] == 3  # re-alerts after cooldown
+
+
+def test_cycle_silent_alert_after_30_minutes_once(conn, cfg, tg):
+    n, t = tg
+    conn.execute("INSERT INTO runs(bot,started_at,finished_at,status) VALUES('radar',?,?,'ok')", (iso(NOW - timedelta(minutes=29)),) * 2)
+    conn.commit()
+    assert "cycle_silent" not in {i["kind"] for i in health.check(conn, cfg, NOW)}            # 29 minutes: still fine
+    r1 = health.run_health(conn, cfg, n, NOW + timedelta(minutes=2))                           # 31 minutes: alert
+    assert "cycle_silent" in {i["kind"] for i in r1["issues"]}
+    sent = [x for x in conn.execute("SELECT payload FROM notifications WHERE key LIKE 'ops:cycle_silent:%'")]
+    assert len(sent) == 1 and "No cycle has finished" in sent[0]["payload"]
+    health.run_health(conn, cfg, n, NOW + timedelta(minutes=17))                               # still silent: no second message
+    assert conn.execute("SELECT COUNT(*) c FROM notifications WHERE key LIKE 'ops:cycle_silent:%'").fetchone()["c"] == 1
 
 
 def test_briefing_catch_up_and_missing_alert(conn, cfg, tg):

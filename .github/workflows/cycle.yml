@@ -1,8 +1,7 @@
 name: cycle
-# Bots 01-03 (news radar, primary sources, trends), story scoring, alerts and Telegram commands. Every 15 minutes.
+# Bots 01-03 (news radar, primary sources, trends), story scoring, alerts and Telegram commands. One short run (about a minute).
+# Started every 15 minutes by the `cycle-loop` workflow (GitHub's free cron skips runs); the tapwatch heartbeat starts it too if it is overdue.
 on:
-  schedule:
-    - cron: "*/15 * * * *"
   workflow_dispatch:
 concurrency:
   group: newsroom-data

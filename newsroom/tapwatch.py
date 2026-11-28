@@ -104,7 +104,7 @@ def github_dispatch():
     return go
 
 
-HEARTBEATS = (("cycle.yml", 20), ("health.yml", 50))      # workflow, minutes after which a missing scheduled run is started by hand
+HEARTBEATS = (("cycle.yml", 20), ("cycle-loop.yml", 20), ("health.yml", 50))      # workflow, minutes after which a missing scheduled run is started by hand
 
 
 def heartbeat(now, request=None, start=None) -> list[str]:
